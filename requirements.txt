@@ -1,0 +1,11 @@
+flask
+openai
+gunicorn
+sentence-transformers
+faiss-cpu
+pypdf
+python-docx
+pytesseract
+pillow
+numpy
+python-dotenv

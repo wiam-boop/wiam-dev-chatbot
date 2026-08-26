@@ -1,0 +1,148 @@
+import os
+from flask import Flask, request, jsonify, session, render_template
+from openai import OpenAI
+from dotenv import load_dotenv
+
+import rag
+
+load_dotenv()  # يقرأ المتغيرات من ملف .env المحلي (لا يُرفع لـ GitHub)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "غيّر-هذا-المفتاح-لاحقاً")
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB لكل ملف
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise RuntimeError(
+        "لم يتم العثور على GROQ_API_KEY. أنشئ ملف .env في مجلد المشروع "
+        "وضع بداخله السطر: GROQ_API_KEY=مفتاحك_هنا"
+    )
+
+client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1"
+)
+
+MODEL_NAME = "openai/gpt-oss-120b"
+
+SYSTEM_PROMPT = """أنت مساعد ذكي ومفيد. أجب بدقة ووضوح.
+- إذا توفرت لك معلومات من مستندات مرفوعة (تظهر بين ## معلومات ذات صلة)، استخدمها كمصدر أساسي للإجابة واذكر من أي ملف أخذت المعلومة.
+- إذا لم تجد المعلومة في المستندات ولا تعرفها، قل ذلك صراحة بدل التخمين.
+- استخدم أمثلة عملية عند الشرح.
+- كن مختصراً إلا إذا طُلب منك التفصيل."""
+
+MAX_HISTORY_MESSAGES = 20
+
+kb = rag.KnowledgeBase()
+
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".txt", ".md"}
+
+
+@app.route("/")
+def index():
+    session.setdefault("messages", [{"role": "system", "content": SYSTEM_PROMPT}])
+    return render_template("index.html")
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    data = request.get_json(silent=True) or {}
+    user_message = (data.get("message") or "").strip()
+
+    if not user_message:
+        return jsonify({"error": "الرسالة فارغة"}), 400
+
+    messages = session.get("messages", [{"role": "system", "content": SYSTEM_PROMPT}])
+
+    # --- خطوة RAG: ابحث في قاعدة المعرفة عن أجزاء ذات صلة بالسؤال ---
+    sources_used = []
+    try:
+        results = kb.search(user_message)
+        context_block = rag.build_context_block(results)
+    except Exception:
+        context_block = None
+        results = []
+
+    outgoing_messages = list(messages)
+    if context_block:
+        outgoing_messages.append({"role": "system", "content": context_block})
+        sources_used = sorted({r["source"] for r in results})
+
+    outgoing_messages.append({"role": "user", "content": user_message})
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=outgoing_messages,
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        answer = response.choices[0].message.content
+    except Exception as e:
+        session["messages"] = messages
+        return jsonify({"error": f"حدث خطأ في الاتصال بالنموذج: {str(e)}"}), 500
+
+    # نحفظ في سجل المحادثة الرسالة الأصلية فقط (بدون كتلة RAG) لتوفير مساحة السياق
+    messages.append({"role": "user", "content": user_message})
+    messages.append({"role": "assistant", "content": answer})
+
+    if len(messages) > MAX_HISTORY_MESSAGES:
+        messages = [messages[0]] + messages[-(MAX_HISTORY_MESSAGES - 1):]
+
+    session["messages"] = messages
+    return jsonify({"answer": answer, "sources": sources_used})
+
+
+@app.route("/api/upload", methods=["POST"])
+def upload():
+    if "file" not in request.files:
+        return jsonify({"error": "لم يتم إرسال أي ملف"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "اسم الملف فارغ"}), 400
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({"error": f"صيغة غير مدعومة: {ext}"}), 400
+
+    try:
+        doc_id, file_path, ext = rag.save_uploaded_file(file, file.filename)
+        text = rag.extract_text(file_path, ext)
+
+        if not text.strip():
+            return jsonify({"error": "لم يتم العثور على نص قابل للقراءة في هذا الملف"}), 422
+
+        chunks_count = kb.add_document(text, file.filename, doc_id)
+    except Exception as e:
+        return jsonify({"error": f"فشل معالجة الملف: {str(e)}"}), 500
+
+    return jsonify({
+        "status": "ok",
+        "doc_id": doc_id,
+        "filename": file.filename,
+        "chunks": chunks_count,
+    })
+
+
+@app.route("/api/documents", methods=["GET"])
+def list_documents():
+    return jsonify({"documents": kb.list_documents()})
+
+
+@app.route("/api/documents/<doc_id>", methods=["DELETE"])
+def delete_document(doc_id):
+    deleted = kb.delete_document(doc_id)
+    if not deleted:
+        return jsonify({"error": "المستند غير موجود"}), 404
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/reset", methods=["POST"])
+def reset():
+    session["messages"] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    return jsonify({"status": "ok"})
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
