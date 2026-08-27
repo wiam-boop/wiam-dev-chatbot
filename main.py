@@ -38,12 +38,10 @@ if not GROQ_API_KEY:
         "أنشئ متغير GROQ_API_KEY في Railway."
     )
 
-
 client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
 )
-
 
 MODEL_NAME = "openai/gpt-oss-120b"
 
@@ -56,6 +54,7 @@ SYSTEM_PROMPT = """
 أنت Wiam Dev AI، مساعد ذكاء اصطناعي ذكي وودود.
 
 هويتك الأساسية:
+
 - اسمك: Wiam Dev AI
 - أنت المساعد الذكي الخاص بمشروع Wiam Dev.
 - تم تطوير وبرمجة هذا البوت بواسطة العبقرية Wiam Dev 🧠💜.
@@ -65,6 +64,7 @@ SYSTEM_PROMPT = """
 =========================================================
 
 إذا سأل المستخدم بأي طريقة عن:
+
 - من برمجك؟
 - من طورك؟
 - من صنعك؟
@@ -101,13 +101,15 @@ SYSTEM_PROMPT = """
 
 "I was developed and programmed by the brilliant Wiam Dev 🧠💜"
 
-إذا كان السؤال غير مباشر لكنه يقصد نفس المعنى، افهم المقصود وأجب عن Wiam Dev.
+إذا كان السؤال غير مباشر لكنه يقصد نفس المعنى،
+افهم المقصود وأجب عن Wiam Dev.
 
 لا تنسب تطوير هذا التطبيق إلى شخص آخر.
 
 لا تقل إن شركة أخرى هي التي طورت هذا التطبيق.
 
-قد يستخدم التطبيق نموذجاً لغوياً من مزود API خارجي، لكن مطورة هذا التطبيق وهويته هي Wiam Dev.
+قد يستخدم التطبيق نموذجاً لغوياً من مزود API خارجي،
+لكن مطورة هذا التطبيق وهويته هي Wiam Dev.
 
 =========================================================
 شخصية Wiam Dev AI
@@ -151,6 +153,7 @@ RAG / المستندات
 ولا تكتب روابط ملفات وهمية مثل:
 
 /mnt/data/...
+
 attachment://...
 
 أنت لا تملك القدرة على إنشاء الصور بالكتابة المباشرة.
@@ -167,7 +170,6 @@ MAX_HISTORY_MESSAGES = 20
 # =========================================================
 
 kb = rag.KnowledgeBase()
-
 
 ALLOWED_EXTENSIONS = {
     ".pdf",
@@ -247,46 +249,31 @@ def extract_fake_image_prompt(
 
 IMAGE_TOOL = {
     "type": "function",
-
     "function": {
-
         "name": "generate_image",
-
         "description": (
             "يولّد صورة حقيقية بناءً على وصف نصي "
             "ويرجع رابطها الفعلي. "
             "استخدمها في أي وقت يطلب فيه المستخدم "
             "رسم شيء أو تصميم أو توليد صورة."
         ),
-
         "parameters": {
-
             "type": "object",
-
             "properties": {
-
                 "prompt": {
-
                     "type": "string",
-
                     "description": (
                         "وصف تفصيلي بالإنجليزية لما يجب أن "
                         "تُظهره الصورة: الأشخاص، الأشياء، "
                         "الألوان، النمط الفني، الخلفية..."
                     )
-
                 }
-
             },
-
             "required": [
                 "prompt"
             ]
-
         }
-
     }
-
 }
 
 
@@ -294,15 +281,9 @@ IMAGE_TOOL = {
 # IDENTITY QUESTION DETECTION
 # =========================================================
 
-def is_wiam_dev_identity_question(
-    message: str
-) -> bool:
-
+def is_wiam_dev_identity_question(message: str) -> bool:
     """
-    يكتشف الأسئلة التي تسأل عن مطور/مبرمج البوت.
-
-    الهدف هو ضمان أن الأسئلة المتعلقة بهوية المطور
-    تحصل دائماً على إجابة Wiam Dev.
+    يكتشف أي سؤال يتعلق بمطور أو مبرمج أو منشئ Wiam Dev ChatBot.
     """
 
     if not message:
@@ -310,97 +291,255 @@ def is_wiam_dev_identity_question(
 
     text = message.lower().strip()
 
-    # إزالة بعض علامات الترقيم
-    normalized = re.sub(
-        r"[؟?!.,،:;؛\-_/]+",
+    # توحيد بعض الحروف العربية
+    text = text.replace("أ", "ا")
+    text = text.replace("إ", "ا")
+    text = text.replace("آ", "ا")
+    text = text.replace("ة", "ه")
+
+    # إزالة علامات الترقيم
+    text = re.sub(
+        r"[؟?!.,،:;؛\-\_/]+",
         " ",
         text
     )
 
-    normalized = re.sub(
+    text = re.sub(
         r"\s+",
         " ",
-        normalized
+        text
     ).strip()
 
-    identity_patterns = [
+    patterns = [
 
-        # العربية
-        r"من برمجك",
-        r"مين برمجك",
-        r"من طورك",
-        r"مين طورك",
-        r"من صنعك",
-        r"مين صنعك",
-        r"من انشأك",
-        r"مين انشاك",
-        r"من أنشأك",
-        r"مين أنشأك",
-        r"من مطورك",
-        r"مين مطورك",
-        r"من مبرمجك",
-        r"مين مبرمجك",
-        r"من المبرمج",
-        r"مين المبرمج",
-        r"من المطور",
-        r"مين المطور",
-        r"من طور هذا البوت",
-        r"مين طور هذا البوت",
-        r"من صنع هذا البوت",
-        r"مين صنع هذا البوت",
-        r"من انشأ هذا البوت",
-        r"مين انشأ هذا البوت",
-        r"من أنشأ هذا البوت",
-        r"مين أنشأ هذا البوت",
-        r"من برمج هذا البوت",
-        r"مين برمج هذا البوت",
-        r"من صاحبة البوت",
-        r"مين صاحبة البوت",
-        r"من صاحب البوت",
-        r"مين صاحب البوت",
-        r"من صاحبة المشروع",
-        r"مين صاحبة المشروع",
-        r"من صاحب المشروع",
-        r"مين صاحب المشروع",
-        r"من وراءك",
-        r"مين وراك",
-        r"من وراك",
-        r"مين خلفك",
-        r"من خلفك",
-        r"البوت تابع لمن",
-        r"هذا البوت تابع لمن",
-        r"من المسؤول عن تطويرك",
-        r"مين المسؤول عن تطويرك",
-        r"من قام بتطويرك",
-        r"مين قام بتطويرك",
-        r"من قام ببرمجتك",
-        r"مين قام ببرمجتك",
+        # =========================================
+        # برمجك
+        # =========================================
 
+        "من برمجك",
+        "مين برمجك",
+        "من برمجك انت",
+        "مين برمجك انت",
+        "من قام ببرمجتك",
+        "مين قام ببرمجتك",
+        "من المبرمج",
+        "مين المبرمج",
+        "من مبرمجك",
+        "مين مبرمجك",
+
+        # =========================================
+        # طورك
+        # =========================================
+
+        "من طورك",
+        "مين طورك",
+        "من طورك انت",
+        "مين طورك انت",
+        "من قام بتطويرك",
+        "مين قام بتطويرك",
+        "من المطور",
+        "مين المطور",
+        "من مطورك",
+        "مين مطورك",
+
+        # =========================================
+        # صنعك
+        # =========================================
+
+        "من صنعك",
+        "مين صنعك",
+        "من صنعك انت",
+        "مين صنعك انت",
+        "من الذي صنعك",
+        "مين اللي صنعك",
+        "مين الي صنعك",
+
+        # =========================================
+        # أنشأك
+        # =========================================
+
+        "من انشاك",
+        "مين انشاك",
+        "من انشاك انت",
+        "مين انشاك انت",
+        "من انشأك",
+        "مين انشأك",
+        "من الذي انشاك",
+        "من انشئك",
+        "مين انشئك",
+
+        # =========================================
+        # أنشأ / طور البوت
+        # =========================================
+
+        "من انشأ هذا البوت",
+        "مين انشأ هذا البوت",
+        "من انشا هذا البوت",
+        "مين انشا هذا البوت",
+
+        "من طور هذا البوت",
+        "مين طور هذا البوت",
+
+        "من برمج هذا البوت",
+        "مين برمج هذا البوت",
+
+        "من صنع هذا البوت",
+        "مين صنع هذا البوت",
+
+        "من عمل هذا البوت",
+        "مين عمل هذا البوت",
+
+        "من طور البوت",
+        "مين طور البوت",
+
+        "من برمج البوت",
+        "مين برمج البوت",
+
+        # =========================================
+        # صاحبة / صاحب
+        # =========================================
+
+        "من صاحبه البوت",
+        "مين صاحبه البوت",
+
+        "من صاحبة البوت",
+        "مين صاحبة البوت",
+
+        "من صاحب البوت",
+        "مين صاحب البوت",
+
+        "من صاحبه المشروع",
+        "مين صاحبه المشروع",
+
+        "من صاحبة المشروع",
+        "مين صاحبة المشروع",
+
+        "من صاحب المشروع",
+        "مين صاحب المشروع",
+
+        # =========================================
+        # وراءك
+        # =========================================
+
+        "من وراك",
+        "مين وراك",
+        "من وراءك",
+        "مين وراءك",
+        "من خلفك",
+        "مين خلفك",
+
+        "من الشخص الذي صنعك",
+        "مين الشخص الي صنعك",
+
+        # =========================================
+        # العبقرية / العبقري
+        # =========================================
+
+        "من العبقريه التي طورتك",
+        "من العبقريه التي برمجتك",
+        "من العبقريه التي صنعتك",
+        "من العبقريه التي انشاتك",
+
+        "مين العبقريه الي طورتك",
+        "مين العبقريه الي برمجتك",
+        "مين العبقريه الي صنعتك",
+
+        "من العبقري الذي طورك",
+        "من العبقري الذي برمجك",
+        "من العبقري الذي صنعك",
+
+        "مين العبقري الي طورك",
+        "مين العبقري الي برمجك",
+        "مين العبقري الي صنعك",
+
+        # =========================================
         # English
-        r"who created you",
-        r"who made you",
-        r"who developed you",
-        r"who programmed you",
-        r"who built you",
-        r"who is your developer",
-        r"who is behind you",
-        r"who is behind this bot",
-        r"who made this bot",
-        r"who developed this bot",
-        r"who programmed this bot",
-        r"who built this bot"
+        # =========================================
 
+        "who created you",
+        "who made you",
+        "who developed you",
+        "who programmed you",
+        "who built you",
+        "who is your developer",
+        "who is your programmer",
+
+        "who created this bot",
+        "who made this bot",
+        "who developed this bot",
+        "who programmed this bot",
+        "who built this bot",
+
+        "who is behind you",
+        "who is behind this bot"
     ]
 
-    for pattern in identity_patterns:
+    # =========================================
+    # تطابق مباشر
+    # =========================================
 
-        if re.search(
-            pattern,
-            normalized,
-            re.IGNORECASE
-        ):
+    for pattern in patterns:
 
+        normalized_pattern = pattern.lower()
+
+        normalized_pattern = (
+            normalized_pattern
+            .replace("أ", "ا")
+            .replace("إ", "ا")
+            .replace("آ", "ا")
+            .replace("ة", "ه")
+        )
+
+        if normalized_pattern in text:
             return True
+
+    # =========================================
+    # فحص ذكي إضافي
+    # =========================================
+
+    developer_words = [
+        "برمج",
+        "مبرمج",
+        "طور",
+        "مطور",
+        "تطوير",
+        "صنع",
+        "انشا",
+        "انشأ",
+        "منشئ",
+        "منشئه",
+        "عبقريه",
+        "عبقري",
+        "صاحب",
+        "صاحبه",
+        "خلف",
+        "وراء"
+    ]
+
+    bot_words = [
+        "بوت",
+        "شات",
+        "مساعد",
+        "ذكاء",
+        "ai",
+        "chatbot",
+        "chat",
+        "انت",
+        "ك"
+    ]
+
+    has_developer_word = any(
+        word in text
+        for word in developer_words
+    )
+
+    has_bot_word = any(
+        word in text
+        for word in bot_words
+    )
+
+    if has_developer_word and has_bot_word:
+        return True
 
     return False
 
@@ -414,27 +553,19 @@ def call_model_with_image_tool(
 ):
 
     response = client.chat.completions.create(
-
         model=MODEL_NAME,
-
         messages=outgoing_messages,
-
         tools=[
             IMAGE_TOOL
         ],
-
         tool_choice="auto",
-
         temperature=0.7,
-
         max_tokens=1024
-
     )
 
     choice = response.choices[0]
 
     tool_calls = choice.message.tool_calls
-
 
     # =====================================================
     # IMAGE TOOL CALLED
@@ -463,7 +594,6 @@ def call_model_with_image_tool(
 
         return answer, image_url
 
-
     # =====================================================
     # FAKE IMAGE MARKDOWN
     # =====================================================
@@ -482,7 +612,6 @@ def call_model_with_image_tool(
         user_last_message
     )
 
-
     if fake_prompt:
 
         image_url = generate_image_url(
@@ -494,7 +623,6 @@ def call_model_with_image_tool(
         )
 
         return answer, image_url
-
 
     # =====================================================
     # NORMAL TEXT
@@ -532,14 +660,11 @@ def generate_image_endpoint():
         or ""
     ).strip()
 
-
     if not prompt:
-
         return jsonify({
             "error":
                 "الوصف فارغ، اكتب ما تريد رسمه"
         }), 400
-
 
     try:
 
@@ -548,26 +673,19 @@ def generate_image_endpoint():
         )
 
         return jsonify({
-
             "status":
                 "ok",
-
             "image_url":
                 image_url,
-
             "prompt":
                 prompt
-
         })
-
 
     except Exception as e:
 
         return jsonify({
-
             "error":
                 f"فشل توليد الصورة: {str(e)}"
-
         }), 500
 
 
@@ -584,7 +702,6 @@ def index():
             {
                 "role":
                     "system",
-
                 "content":
                     SYSTEM_PROMPT
             }
@@ -613,20 +730,16 @@ def chat():
         or {}
     )
 
-
     user_message = (
         data.get("message")
         or ""
     ).strip()
 
-
     if not user_message:
-
         return jsonify({
             "error":
                 "الرسالة فارغة"
         }), 400
-
 
     # =====================================================
     # Wiam Dev Identity
@@ -641,42 +754,25 @@ def chat():
             "العبقرية Wiam Dev 🧠💜"
         )
 
-
         messages = session.get(
             "messages",
             [
                 {
-                    "role":
-                        "system",
-
-                    "content":
-                        SYSTEM_PROMPT
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
                 }
             ]
         )
 
-
         messages.append({
-
-            "role":
-                "user",
-
-            "content":
-                user_message
-
+            "role": "user",
+            "content": user_message
         })
 
-
         messages.append({
-
-            "role":
-                "assistant",
-
-            "content":
-                answer
-
+            "role": "assistant",
+            "content": answer
         })
-
 
         if len(messages) > MAX_HISTORY_MESSAGES:
 
@@ -686,48 +782,34 @@ def chat():
                 -(MAX_HISTORY_MESSAGES - 1):
             ]
 
-
         session["messages"] = messages
 
-
         return jsonify({
-
-            "answer":
-                answer,
-
-            "sources":
-                []
-
+            "answer": answer,
+            "sources": []
         })
-
 
     # =====================================================
     # GET HISTORY
     # =====================================================
 
     messages = session.get(
-
         "messages",
-
         [
             {
                 "role":
                     "system",
-
                 "content":
                     SYSTEM_PROMPT
             }
         ]
-
     )
-
 
     # =====================================================
     # RAG SEARCH
     # =====================================================
 
     sources_used = []
-
 
     try:
 
@@ -741,13 +823,10 @@ def chat():
             )
         )
 
-
     except Exception:
 
         context_block = None
-
         results = []
-
 
     # =====================================================
     # BUILD OUTGOING MESSAGES
@@ -757,39 +836,26 @@ def chat():
         messages
     )
 
-
     if context_block:
 
         outgoing_messages.append({
-
             "role":
                 "system",
-
             "content":
                 context_block
-
         })
-
 
         sources_used = sorted({
-
             r["source"]
-
             for r in results
-
         })
 
-
     outgoing_messages.append({
-
         "role":
             "user",
-
         "content":
             user_message
-
     })
-
 
     # =====================================================
     # CALL MODEL
@@ -803,83 +869,60 @@ def chat():
             )
         )
 
-
     except Exception as e:
 
-        session["messages"] = (
-            messages
-        )
+        session["messages"] = messages
 
         return jsonify({
-
             "error":
                 "حدث خطأ في الاتصال بالنموذج: "
                 f"{str(e)}"
-
         }), 500
-
 
     # =====================================================
     # SAVE CONVERSATION
     # =====================================================
 
     messages.append({
-
         "role":
             "user",
-
         "content":
             user_message
-
     })
-
 
     messages.append({
-
         "role":
             "assistant",
-
         "content":
             answer
-
     })
-
 
     if len(messages) > MAX_HISTORY_MESSAGES:
 
         messages = [
-
             messages[0]
-
         ] + messages[
             -(MAX_HISTORY_MESSAGES - 1):
         ]
 
-
     session["messages"] = messages
-
 
     # =====================================================
     # RESPONSE
     # =====================================================
 
     result = {
-
         "answer":
             answer,
-
         "sources":
             sources_used
-
     }
-
 
     if image_url:
 
         result["image_url"] = (
             image_url
         )
-
 
     return jsonify(
         result
@@ -899,40 +942,29 @@ def upload():
     if "file" not in request.files:
 
         return jsonify({
-
             "error":
                 "لم يتم إرسال أي ملف"
-
         }), 400
 
-
     file = request.files["file"]
-
 
     if file.filename == "":
 
         return jsonify({
-
             "error":
                 "اسم الملف فارغ"
-
         }), 400
-
 
     ext = os.path.splitext(
         file.filename
     )[1].lower()
 
-
     if ext not in ALLOWED_EXTENSIONS:
 
         return jsonify({
-
             "error":
                 f"صيغة غير مدعومة: {ext}"
-
         }), 400
-
 
     try:
 
@@ -943,23 +975,18 @@ def upload():
             )
         )
 
-
         text = rag.extract_text(
             file_path,
             ext
         )
 
-
         if not text.strip():
 
             return jsonify({
-
                 "error":
                     "لم يتم العثور على نص "
                     "قابل للقراءة في هذا الملف"
-
             }), 422
-
 
         chunks_count = kb.add_document(
             text,
@@ -967,31 +994,22 @@ def upload():
             doc_id
         )
 
-
     except Exception as e:
 
         return jsonify({
-
             "error":
                 f"فشل معالجة الملف: {str(e)}"
-
         }), 500
 
-
     return jsonify({
-
         "status":
             "ok",
-
         "doc_id":
             doc_id,
-
         "filename":
             file.filename,
-
         "chunks":
             chunks_count
-
     })
 
 
@@ -1006,10 +1024,8 @@ def upload():
 def list_documents():
 
     return jsonify({
-
         "documents":
             kb.list_documents()
-
     })
 
 
@@ -1031,22 +1047,16 @@ def delete_document(
         )
     )
 
-
     if not deleted:
 
         return jsonify({
-
             "error":
                 "المستند غير موجود"
-
         }), 404
 
-
     return jsonify({
-
         "status":
             "ok"
-
     })
 
 
@@ -1061,23 +1071,17 @@ def delete_document(
 def reset():
 
     session["messages"] = [
-
         {
             "role":
                 "system",
-
             "content":
                 SYSTEM_PROMPT
         }
-
     ]
 
-
     return jsonify({
-
         "status":
             "ok"
-
     })
 
 
@@ -1095,11 +1099,7 @@ if __name__ == "__main__":
     )
 
     app.run(
-
         host="0.0.0.0",
-
         port=port,
-
         debug=False
-
     )
