@@ -27,7 +27,7 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # ─── نموذج embedding محلي (بلا API خارجي) ───
 HF_API_KEY = os.environ.get("HF_API_KEY")
-HF_EMBED_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+HF_EMBED_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/pipeline/feature-extraction"
 
 EMBED_DIM = 384
 CHUNK_SIZE    = 700
