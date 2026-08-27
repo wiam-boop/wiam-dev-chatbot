@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Wiam Dev — Admin
+    </title>
+
+    <style>
+
+        :root {
+            --bg: #1e1e20;
+            --sidebar: #161618;
+            --card: #2a2a2d;
+            --input: #2f2f33;
+            --border: #333336;
+            --text: #ececec;
+            --muted: #9a9aa2;
+            --accent: #6c5ce7;
+            --accent-hover: #7d70eb;
+            --danger: #e5584f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family:
+                Arial,
+                "Tahoma",
+                sans-serif;
+
+            background: var(--bg);
+            color: var(--text);
+
+            min-height: 100vh;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* =====================================================
+           LOGIN
+           ===================================================== */
+
+        #loginScreen {
+
+            min-height: 100vh;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 20px;
+        }
+
+        .login-card {
+
+            width: 100%;
+            max-width: 400px;
+
+            background: var(--sidebar);
+
+            border: 1px solid var(--border);
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            box-shadow:
+                0 20px 60px rgba(0,0,0,.35);
+        }
+
+        .login-icon {
+
+            width: 60px;
+            height: 60px;
+
+            border-radius: 16px;
+
+            margin: 0 auto 18px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--accent),
+                    #a29bfe
+                );
+
+            font-size: 27px;
+        }
+
+        .login-card h1 {
+
+            font-size: 22px;
+
+            margin-bottom: 8px;
+        }
+
+        .login-card p {
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+            line-height: 1.7;
+
+            margin-bottom: 22px;
+        }
+
+        #password {
+
+            width: 100%;
+
+            background: var(--input);
+
+            border: 1px solid var(--border);
+
+            color: var(--text);
+
+            padding: 12px 14px;
+
+            border-radius: 10px;
+
+            outline: none;
+
+            direction: ltr;
+
+            text-align: left;
+
+            margin-bottom: 10px;
+        }
+
+        #password:focus {
+
+            border-color:
+                var(--accent);
+        }
+
+        #loginBtn {
+
+            width: 100%;
+
+            border: 0;
+
+            background: var(--accent);
+
+            color: white;
+
+            padding: 12px;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            transition: .15s;
+        }
+
+        #loginBtn:hover {
+
+            background:
+                var(--accent-hover);
+        }
+
+        #loginError {
+
+            color: var(--danger);
+
+            margin-top: 12px;
+
+            font-size: 13px;
+        }
+
+        /* =====================================================
+           DASHBOARD
+           ===================================================== */
+
+        #dashboard {
+
+            min-height: 100vh;
+
+            display: grid;
+
+            grid-template-columns:
+                360px 1fr;
+        }
+
+        .conversations-panel {
+
+            background: var(--sidebar);
+
+            border-left:
+                1px solid var(--border);
+
+            display: flex;
+
+            flex-direction: column;
+
+            min-height: 100vh;
+        }
+
+        .panel-header {
+
+            padding: 20px;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+        .panel-header-top {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            margin-bottom: 15px;
+        }
+
+        .panel-title {
+
+            font-size: 18px;
+
+            font-weight: 700;
+        }
+
+        #logoutBtn {
+
+            border: 1px solid var(--border);
+
+            background: transparent;
+
+            color: var(--text);
+
+            border-radius: 8px;
+
+            padding: 7px 10px;
+
+            cursor: pointer;
+        }
+
+        #logoutBtn:hover {
+
+            background:
+                var(--card);
+        }
+
+        .stats {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 7px;
+        }
+
+        .stat {
+
+            background: var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 10px;
+
+            padding: 10px;
+
+            text-align: center;
+        }
+
+        .stat-number {
+
+            font-size: 18px;
+
+            font-weight: 700;
+
+            color: #fff;
+        }
+
+        .stat-label {
+
+            font-size: 10px;
+
+            color: var(--muted);
+
+            margin-top: 4px;
+        }
+
+        #conversationList {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            padding: 10px;
+        }
+
+        .conversation {
+
+            background: transparent;
+
+            border:
+                1px solid transparent;
+
+            border-radius: 10px;
+
+            padding: 12px;
+
+            cursor: pointer;
+
+            margin-bottom: 6px;
+
+            transition: .15s;
+        }
+
+        .conversation:hover {
+
+            background: var(--card);
+
+            border-color:
+                var(--border);
+        }
+
+        .conversation.active {
+
+            background:
+                rgba(108,92,231,.14);
+
+            border-color:
+                rgba(108,92,231,.35);
+        }
+
+        .conversation-title {
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+            margin-bottom: 5px;
+        }
+
+        .conversation-meta {
+
+            font-size: 10px;
+
+            color: var(--muted);
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            gap: 5px;
+        }
+
+        .empty {
+
+            text-align: center;
+
+            color: var(--muted);
+
+            padding: 30px 10px;
+
+            font-size: 13px;
+        }
+
+        /* =====================================================
+           CHAT VIEW
+           ===================================================== */
+
+        .chat-panel {
+
+            min-width: 0;
+
+            display: flex;
+
+            flex-direction: column;
+
+            min-height: 100vh;
+        }
+
+        .chat-header {
+
+            padding: 20px;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+        .chat-header h2 {
+
+            font-size: 17px;
+
+            margin-bottom: 5px;
+        }
+
+        #selectedSession {
+
+            color: var(--muted);
+
+            font-size: 11px;
+
+            direction: ltr;
+
+            text-align: left;
+        }
+
+        #messages {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            padding: 24px;
+
+            max-width: 900px;
+
+            width: 100%;
+
+            margin: 0 auto;
+        }
+
+        .message {
+
+            margin-bottom: 20px;
+
+            display: flex;
+
+            gap: 10px;
+
+            align-items: flex-start;
+        }
+
+        .message-avatar {
+
+            width: 32px;
+            height: 32px;
+
+            min-width: 32px;
+
+            border-radius: 9px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: var(--card);
+
+            border:
+                1px solid var(--border);
+        }
+
+        .message-body {
+
+            min-width: 0;
+
+            flex: 1;
+        }
+
+        .message-role {
+
+            color: var(--muted);
+
+            font-size: 11px;
+
+            margin-bottom: 5px;
+        }
+
+        .message-content {
+
+            background: var(--card);
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 12px;
+
+            padding: 12px 14px;
+
+            line-height: 1.8;
+
+            font-size: 14px;
+
+            white-space: pre-wrap;
+
+            word-break: break-word;
+        }
+
+        .message.user
+        .message-content {
+
+            background:
+                rgba(108,92,231,.12);
+        }
+
+        .message img {
+
+            display: block;
+
+            max-width: 400px;
+
+            width: 100%;
+
+            border-radius: 10px;
+
+            margin-top: 10px;
+
+            border:
+                1px solid var(--border);
+        }
+
+        .sources {
+
+            color: var(--muted);
+
+            font-size: 10px;
+
+            margin-top: 7px;
+        }
+
+        .message-time {
+
+            color: var(--muted);
+
+            font-size: 9px;
+
+            margin-top: 5px;
+        }
+
+        .welcome {
+
+            height: 100%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            text-align: center;
+
+            color: var(--muted);
+        }
+
+        /* =====================================================
+           DELETE
+           ===================================================== */
+
+        .delete-conversation {
+
+            margin-top: 8px;
+
+            border: 0;
+
+            color: var(--danger);
+
+            background: transparent;
+
+            cursor: pointer;
+
+            font-size: 11px;
+        }
+
+        /* =====================================================
+           MOBILE
+           ===================================================== */
+
+        @media (max-width: 800px) {
+
+            #dashboard {
+
+                grid-template-columns: 1fr;
+
+            }
+
+            .conversations-panel {
+
+                min-height:
+                    auto;
+
+                max-height:
+                    42vh;
+
+                border-left: 0;
+
+                border-bottom:
+                    1px solid var(--border);
+            }
+
+            #conversationList {
+
+                max-height:
+                    220px;
+            }
+
+            .chat-panel {
+
+                min-height:
+                    58vh;
+            }
+
+            #messages {
+
+                padding:
+                    16px 12px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<!-- =====================================================
+     LOGIN
+     ===================================================== -->
+
+<div id="loginScreen">
+
+    <div class="login-card">
+
+        <div class="login-icon">
+            🔐
+        </div>
+
+        <h1>
+            Wiam Dev Admin
+        </h1>
+
+        <p>
+            لوحة إدارة خاصة لعرض
+            محادثات مستخدمي Wiam Dev ChatBot.
+        </p>
+
+        <input
+            id="password"
+            type="password"
+            placeholder="كلمة مرور الإدارة"
+        >
+
+        <button id="loginBtn">
+            دخول
+        </button>
+
+        <div
+            id="loginError"
+            class="hidden"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     DASHBOARD
+     ===================================================== -->
+
+<div
+    id="dashboard"
+    class="hidden"
+>
+
+    <aside
+        class="conversations-panel"
+    >
+
+        <div class="panel-header">
+
+            <div
+                class="panel-header-top"
+            >
+
+                <div class="panel-title">
+                    💬 المحادثات
+                </div>
+
+                <button
+                    id="logoutBtn"
+                >
+                    خروج
+                </button>
+
+            </div>
+
+
+            <div class="stats">
+
+                <div class="stat">
+
+                    <div
+                        id="conversationCount"
+                        class="stat-number"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-label">
+                        محادثة
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div
+                        id="messageCount"
+                        class="stat-number"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-label">
+                        رسالة
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div
+                        id="imageCount"
+                        class="stat-number"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-label">
+                        صورة
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="conversationList"
+        ></div>
+
+    </aside>
+
+
+    <main class="chat-panel">
+
+        <div class="chat-header">
+
+            <h2>
+                سجل المحادثة
+            </h2>
+
+            <div
+                id="selectedSession"
+            >
+                اختر محادثة
+            </div>
+
+        </div>
+
+
+        <div id="messages">
+
+            <div class="welcome">
+
+                اختر محادثة من القائمة
+                لمشاهدة الرسائل.
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+const loginScreen =
+    document.getElementById(
+        "loginScreen"
+    );
+
+const dashboard =
+    document.getElementById(
+        "dashboard"
+    );
+
+const passwordInput =
+    document.getElementById(
+        "password"
+    );
+
+const loginBtn =
+    document.getElementById(
+        "loginBtn"
+    );
+
+const loginError =
+    document.getElementById(
+        "loginError"
+    );
+
+const logoutBtn =
+    document.getElementById(
+        "logoutBtn"
+    );
+
+const conversationList =
+    document.getElementById(
+        "conversationList"
+    );
+
+const messagesEl =
+    document.getElementById(
+        "messages"
+    );
+
+const selectedSession =
+    document.getElementById(
+        "selectedSession"
+    );
+
+const conversationCount =
+    document.getElementById(
+        "conversationCount"
+    );
+
+const messageCount =
+    document.getElementById(
+        "messageCount"
+    );
+
+const imageCount =
+    document.getElementById(
+        "imageCount"
+    );
+
+
+let activeSession = null;
+
+
+function escapeHtml(text) {
+
+    return String(text ?? "")
+        .replace(
+            /[&<>"']/g,
+            char => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            })[char]
+        );
+}
+
+
+/* =====================================================
+   LOGIN
+   ===================================================== */
+
+loginBtn.addEventListener(
+    "click",
+    login
+);
+
+
+passwordInput.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            login();
+        }
+    }
+);
+
+
+async function login() {
+
+    const password =
+        passwordInput.value;
+
+    if (!password) {
+
+        showLoginError(
+            "أدخل كلمة المرور."
+        );
+
+        return;
+    }
+
+    loginBtn.disabled = true;
+
+    loginBtn.textContent =
+        "جارٍ الدخول...";
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/admin/login",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            password
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            showLoginError(
+                data.error ||
+                "فشل تسجيل الدخول."
+            );
+
+            return;
+        }
+
+        loginScreen
+            .classList
+            .add("hidden");
+
+        dashboard
+            .classList
+            .remove("hidden");
+
+        passwordInput.value = "";
+
+        loadConversations();
+
+    }
+    catch (error) {
+
+        showLoginError(
+            "تعذر الاتصال بالسيرفر."
+        );
+
+    }
+    finally {
+
+        loginBtn.disabled = false;
+
+        loginBtn.textContent =
+            "دخول";
+    }
+}
+
+
+function showLoginError(message) {
+
+    loginError.textContent =
+        message;
+
+    loginError.classList
+        .remove("hidden");
+}
+
+
+/* =====================================================
+   LOAD CONVERSATIONS
+   ===================================================== */
+
+async function loadConversations() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/admin/conversations"
+            );
+
+        if (
+            response.status === 401
+        ) {
+
+            logout();
+
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            alert(
+                data.error ||
+                "تعذر تحميل المحادثات."
+            );
+
+            return;
+        }
+
+        conversationCount.textContent =
+            data.stats.conversations;
+
+        messageCount.textContent =
+            data.stats.messages;
+
+        imageCount.textContent =
+            data.stats.images;
+
+        renderConversations(
+            data.conversations
+        );
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+        conversationList.innerHTML =
+            `<div class="empty">
+                تعذر تحميل البيانات.
+            </div>`;
+    }
+}
+
+
+/* =====================================================
+   RENDER CONVERSATIONS
+   ===================================================== */
+
+function renderConversations(
+    conversations
+) {
+
+    conversationList.innerHTML =
+        "";
+
+    if (
+        !conversations ||
+        conversations.length === 0
+    ) {
+
+        conversationList.innerHTML =
+            `<div class="empty">
+                لا توجد محادثات بعد.
+            </div>`;
+
+        return;
+    }
+
+
+    conversations.forEach(
+        conversation => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "conversation";
+
+            if (
+                conversation.session_id ===
+                activeSession
+            ) {
+
+                item.classList.add(
+                    "active"
+                );
+            }
+
+
+            const title =
+                conversation.first_user_message ||
+                "محادثة بدون عنوان";
+
+
+            item.innerHTML = `
+
+                <div class="conversation-title">
+
+                    ${escapeHtml(
+                        title
+                    )}
+
+                </div>
+
+                <div class="conversation-meta">
+
+                    <span>
+                        ${conversation.message_count}
+                        رسالة
+                    </span>
+
+                    <span>
+                        ${formatDate(
+                            conversation.last_message
+                        )}
+                    </span>
+
+                </div>
+
+                <button
+                    class="delete-conversation"
+                    type="button"
+                >
+                    حذف المحادثة
+                </button>
+            `;
+
+
+            const deleteButton =
+                item.querySelector(
+                    ".delete-conversation"
+                );
+
+
+            deleteButton.addEventListener(
+                "click",
+                async event => {
+
+                    event.stopPropagation();
+
+                    await deleteConversation(
+                        conversation.session_id
+                    );
+                }
+            );
+
+
+            item.addEventListener(
+                "click",
+                () => {
+
+                    loadConversation(
+                        conversation.session_id
+                    );
+                }
+            );
+
+
+            conversationList.appendChild(
+                item
+            );
+        }
+    );
+}
+
+
+/* =====================================================
+   LOAD CONVERSATION
+   ===================================================== */
+
+async function loadConversation(
+    sessionId
+) {
+
+    activeSession =
+        sessionId;
+
+    selectedSession.textContent =
+        sessionId;
+
+    messagesEl.innerHTML =
+        `
+        <div class="welcome">
+            ⏳ جارٍ تحميل المحادثة...
+        </div>
+        `;
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/admin/conversation/${encodeURIComponent(sessionId)}`
+            );
+
+        if (
+            response.status === 401
+        ) {
+
+            logout();
+
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            messagesEl.innerHTML =
+                `
+                <div class="welcome">
+                    ${escapeHtml(
+                        data.error ||
+                        "تعذر تحميل المحادثة."
+                    )}
+                </div>
+                `;
+
+            return;
+        }
+
+        renderMessages(
+            data.messages
+        );
+
+        loadConversations();
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+        messagesEl.innerHTML =
+            `
+            <div class="welcome">
+                تعذر تحميل المحادثة.
+            </div>
+            `;
+    }
+}
+
+
+/* =====================================================
+   RENDER MESSAGES
+   ===================================================== */
+
+function renderMessages(
+    messages
+) {
+
+    messagesEl.innerHTML =
+        "";
+
+    if (
+        !messages ||
+        messages.length === 0
+    ) {
+
+        messagesEl.innerHTML =
+            `
+            <div class="welcome">
+                لا توجد رسائل.
+            </div>
+            `;
+
+        return;
+    }
+
+
+    messages.forEach(
+        message => {
+
+            const wrapper =
+                document.createElement(
+                    "div"
+                );
+
+            wrapper.className =
+                "message " +
+                message.role;
+
+
+            const avatar =
+                message.role === "user"
+                    ? "🧑"
+                    : "🤖";
+
+
+            const roleName =
+                message.role === "user"
+                    ? "المستخدم"
+                    : "Wiam Dev AI";
+
+
+            let imageHtml = "";
+
+            if (
+                message.image_url
+            ) {
+
+                imageHtml = `
+                    <img
+                        src="${escapeHtml(
+                            message.image_url
+                        )}"
+                        alt="صورة مولدة"
+                        loading="lazy"
+                    >
+                `;
+            }
+
+
+            let sourcesHtml = "";
+
+            if (
+                Array.isArray(
+                    message.sources
+                ) &&
+                message.sources.length
+            ) {
+
+                sourcesHtml = `
+                    <div class="sources">
+                        📎 المصادر:
+                        ${escapeHtml(
+                            message.sources.join(
+                                "، "
+                            )
+                        )}
+                    </div>
+                `;
+            }
+
+
+            wrapper.innerHTML = `
+
+                <div class="message-avatar">
+                    ${avatar}
+                </div>
+
+                <div class="message-body">
+
+                    <div class="message-role">
+                        ${roleName}
+                    </div>
+
+                    <div class="message-content">
+                        ${escapeHtml(
+                            message.content
+                        )}
+                    </div>
+
+                    ${imageHtml}
+
+                    ${sourcesHtml}
+
+                    <div class="message-time">
+                        ${formatDate(
+                            message.created_at
+                        )}
+                    </div>
+
+                </div>
+            `;
+
+
+            messagesEl.appendChild(
+                wrapper
+            );
+        }
+    );
+
+
+    requestAnimationFrame(
+        () => {
+
+            messagesEl.scrollTop =
+                messagesEl.scrollHeight;
+        }
+    );
+}
+
+
+/* =====================================================
+   DELETE
+   ===================================================== */
+
+async function deleteConversation(
+    sessionId
+) {
+
+    const confirmed =
+        confirm(
+            "هل تريد حذف هذه المحادثة نهائياً؟"
+        );
+
+    if (!confirmed) {
+
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/admin/conversation/${encodeURIComponent(sessionId)}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            alert(
+                data.error ||
+                "تعذر حذف المحادثة."
+            );
+
+            return;
+        }
+
+        if (
+            activeSession ===
+            sessionId
+        ) {
+
+            activeSession = null;
+
+            selectedSession.textContent =
+                "اختر محادثة";
+
+            messagesEl.innerHTML =
+                `
+                <div class="welcome">
+                    اختر محادثة من القائمة
+                    لمشاهدة الرسائل.
+                </div>
+                `;
+        }
+
+        await loadConversations();
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+        alert(
+            "تعذر حذف المحادثة."
+        );
+    }
+}
+
+
+/* =====================================================
+   LOGOUT
+   ===================================================== */
+
+logoutBtn.addEventListener(
+    "click",
+    logout
+);
+
+
+async function logout() {
+
+    try {
+
+        await fetch(
+            "/api/admin/logout",
+            {
+                method: "POST"
+            }
+        );
+
+    }
+    catch (error) {
+
+        console.error(error);
+    }
+
+    dashboard
+        .classList
+        .add("hidden");
+
+    loginScreen
+        .classList
+        .remove("hidden");
+
+    passwordInput.value = "";
+
+    loginError
+        .classList
+        .add("hidden");
+
+    conversationList.innerHTML =
+        "";
+
+    messagesEl.innerHTML =
+        "";
+
+    activeSession = null;
+}
+
+
+/* =====================================================
+   DATE
+   ===================================================== */
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
+
+        return "";
+    }
+
+    try {
+
+        return new Date(
+            value
+        ).toLocaleString(
+            "ar-DZ"
+        );
+
+    }
+    catch {
+
+        return String(value);
+    }
+}
+
+</script>
+
+</body>
+</html>

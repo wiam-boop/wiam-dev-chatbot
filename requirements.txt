@@ -11,3 +11,4 @@ requests
 python-dotenv
 huggingface_hub
 groq
+psycopg[binary]

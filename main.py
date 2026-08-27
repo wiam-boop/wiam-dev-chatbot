@@ -1,6 +1,8 @@
 import os
 import re
 import json
+import uuid
+import hmac
 import urllib.parse
 
 from flask import Flask, request, jsonify, session, render_template
@@ -8,6 +10,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 import rag
+import database
 
 
 # =========================================================
@@ -27,10 +30,61 @@ app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 
 # =========================================================
+# ADMIN / DATABASE
+# =========================================================
+
+ADMIN_PASSWORD = os.environ.get(
+    "ADMIN_PASSWORD",
+    ""
+).strip()
+
+
+# تهيئة قاعدة البيانات عند تشغيل التطبيق
+database.init_db()
+
+
+def get_chat_session_id():
+    """
+    ينشئ معرفاً فريداً للمحادثة الحالية.
+    يبقى ثابتاً لنفس المحادثة،
+    ويتم تغييره عند بدء محادثة جديدة.
+    """
+
+    session_id = session.get(
+        "chat_session_id"
+    )
+
+    if not session_id:
+        session_id = uuid.uuid4().hex
+
+        session["chat_session_id"] = (
+            session_id
+        )
+
+    return session_id
+
+
+def is_admin():
+    """
+    التحقق من أن المستخدم سجل الدخول إلى لوحة الإدارة.
+    """
+
+    return (
+        session.get(
+            "admin_authenticated",
+            False
+        )
+        is True
+    )
+
+
+# =========================================================
 # GROQ
 # =========================================================
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+GROQ_API_KEY = os.environ.get(
+    "GROQ_API_KEY"
+)
 
 if not GROQ_API_KEY:
     raise RuntimeError(
@@ -38,12 +92,16 @@ if not GROQ_API_KEY:
         "أنشئ متغير GROQ_API_KEY في Railway."
     )
 
+
 client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
 )
 
-MODEL_NAME = "openai/gpt-oss-120b"
+
+MODEL_NAME = (
+    "openai/gpt-oss-120b"
+)
 
 
 # =========================================================
@@ -171,6 +229,7 @@ MAX_HISTORY_MESSAGES = 20
 
 kb = rag.KnowledgeBase()
 
+
 ALLOWED_EXTENSIONS = {
     ".pdf",
     ".docx",
@@ -194,7 +253,9 @@ def generate_image_url(
     height: int = 1024
 ) -> str:
 
-    encoded_prompt = urllib.parse.quote(prompt)
+    encoded_prompt = (
+        urllib.parse.quote(prompt)
+    )
 
     return (
         f"https://image.pollinations.ai/prompt/"
@@ -215,12 +276,16 @@ FAKE_IMAGE_MARKDOWN_PATTERN = re.compile(
 )
 
 
-def strip_fake_image_markdown(text: str) -> str:
+def strip_fake_image_markdown(
+    text: str
+) -> str:
 
-    return FAKE_IMAGE_MARKDOWN_PATTERN.sub(
-        "",
-        text
-    ).strip()
+    return (
+        FAKE_IMAGE_MARKDOWN_PATTERN.sub(
+            "",
+            text
+        ).strip()
+    )
 
 
 def extract_fake_image_prompt(
@@ -228,8 +293,10 @@ def extract_fake_image_prompt(
     fallback_prompt: str
 ) -> str | None:
 
-    match = FAKE_IMAGE_MARKDOWN_PATTERN.search(
-        answer_text
+    match = (
+        FAKE_IMAGE_MARKDOWN_PATTERN.search(
+            answer_text
+        )
     )
 
     if not match:
@@ -237,7 +304,10 @@ def extract_fake_image_prompt(
 
     url = match.group(1)
 
-    if "image.pollinations.ai" in url:
+    if (
+        "image.pollinations.ai"
+        in url
+    ):
         return None
 
     return fallback_prompt
@@ -249,19 +319,24 @@ def extract_fake_image_prompt(
 
 IMAGE_TOOL = {
     "type": "function",
+
     "function": {
         "name": "generate_image",
+
         "description": (
             "يولّد صورة حقيقية بناءً على وصف نصي "
             "ويرجع رابطها الفعلي. "
             "استخدمها في أي وقت يطلب فيه المستخدم "
             "رسم شيء أو تصميم أو توليد صورة."
         ),
+
         "parameters": {
             "type": "object",
+
             "properties": {
                 "prompt": {
                     "type": "string",
+
                     "description": (
                         "وصف تفصيلي بالإنجليزية لما يجب أن "
                         "تُظهره الصورة: الأشخاص، الأشياء، "
@@ -269,6 +344,7 @@ IMAGE_TOOL = {
                     )
                 }
             },
+
             "required": [
                 "prompt"
             ]
@@ -281,15 +357,23 @@ IMAGE_TOOL = {
 # IDENTITY QUESTION DETECTION
 # =========================================================
 
-def is_wiam_dev_identity_question(message: str) -> bool:
+def is_wiam_dev_identity_question(
+    message: str
+) -> bool:
+
     """
-    يكتشف أي سؤال يتعلق بمطور أو مبرمج أو منشئ Wiam Dev ChatBot.
+    يكتشف أي سؤال يتعلق بمطور أو مبرمج
+    أو منشئ Wiam Dev ChatBot.
     """
 
     if not message:
         return False
 
-    text = message.lower().strip()
+    text = (
+        message
+        .lower()
+        .strip()
+    )
 
     # توحيد بعض الحروف العربية
     text = text.replace("أ", "ا")
@@ -299,7 +383,7 @@ def is_wiam_dev_identity_question(message: str) -> bool:
 
     # إزالة علامات الترقيم
     text = re.sub(
-        r"[؟?!.,،:;؛\-\_/]+",
+        r"[؟?!.,،:;؛\-\_\/]+",
         " ",
         text
     )
@@ -312,9 +396,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
 
     patterns = [
 
-        # =========================================
+        # =====================================================
         # برمجك
-        # =========================================
+        # =====================================================
 
         "من برمجك",
         "مين برمجك",
@@ -327,9 +411,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من مبرمجك",
         "مين مبرمجك",
 
-        # =========================================
+        # =====================================================
         # طورك
-        # =========================================
+        # =====================================================
 
         "من طورك",
         "مين طورك",
@@ -342,9 +426,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من مطورك",
         "مين مطورك",
 
-        # =========================================
+        # =====================================================
         # صنعك
-        # =========================================
+        # =====================================================
 
         "من صنعك",
         "مين صنعك",
@@ -354,9 +438,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "مين اللي صنعك",
         "مين الي صنعك",
 
-        # =========================================
+        # =====================================================
         # أنشأك
-        # =========================================
+        # =====================================================
 
         "من انشاك",
         "مين انشاك",
@@ -368,9 +452,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من انشئك",
         "مين انشئك",
 
-        # =========================================
+        # =====================================================
         # أنشأ / طور البوت
-        # =========================================
+        # =====================================================
 
         "من انشأ هذا البوت",
         "مين انشأ هذا البوت",
@@ -395,13 +479,12 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من برمج البوت",
         "مين برمج البوت",
 
-        # =========================================
+        # =====================================================
         # صاحبة / صاحب
-        # =========================================
+        # =====================================================
 
         "من صاحبه البوت",
         "مين صاحبه البوت",
-
         "من صاحبة البوت",
         "مين صاحبة البوت",
 
@@ -417,9 +500,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من صاحب المشروع",
         "مين صاحب المشروع",
 
-        # =========================================
+        # =====================================================
         # وراءك
-        # =========================================
+        # =====================================================
 
         "من وراك",
         "مين وراك",
@@ -431,9 +514,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "من الشخص الذي صنعك",
         "مين الشخص الي صنعك",
 
-        # =========================================
+        # =====================================================
         # العبقرية / العبقري
-        # =========================================
+        # =====================================================
 
         "من العبقريه التي طورتك",
         "من العبقريه التي برمجتك",
@@ -452,9 +535,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "مين العبقري الي برمجك",
         "مين العبقري الي صنعك",
 
-        # =========================================
+        # =====================================================
         # English
-        # =========================================
+        # =====================================================
 
         "who created you",
         "who made you",
@@ -474,13 +557,15 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         "who is behind this bot"
     ]
 
-    # =========================================
-    # تطابق مباشر
-    # =========================================
+    # =====================================================
+    # DIRECT MATCH
+    # =====================================================
 
     for pattern in patterns:
 
-        normalized_pattern = pattern.lower()
+        normalized_pattern = (
+            pattern.lower()
+        )
 
         normalized_pattern = (
             normalized_pattern
@@ -493,9 +578,9 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         if normalized_pattern in text:
             return True
 
-    # =========================================
-    # فحص ذكي إضافي
-    # =========================================
+    # =====================================================
+    # SMART CHECK
+    # =====================================================
 
     developer_words = [
         "برمج",
@@ -538,7 +623,10 @@ def is_wiam_dev_identity_question(message: str) -> bool:
         for word in bot_words
     )
 
-    if has_developer_word and has_bot_word:
+    if (
+        has_developer_word
+        and has_bot_word
+    ):
         return True
 
     return False
@@ -565,7 +653,9 @@ def call_model_with_image_tool(
 
     choice = response.choices[0]
 
-    tool_calls = choice.message.tool_calls
+    tool_calls = (
+        choice.message.tool_calls
+    )
 
     # =====================================================
     # IMAGE TOOL CALLED
@@ -592,7 +682,10 @@ def call_model_with_image_tool(
             "تفضل، هذه الصورة التي طلبتها 🎨"
         )
 
-        return answer, image_url
+        return (
+            answer,
+            image_url
+        )
 
     # =====================================================
     # FAKE IMAGE MARKDOWN
@@ -607,22 +700,29 @@ def call_model_with_image_tool(
         outgoing_messages[-1]["content"]
     )
 
-    fake_prompt = extract_fake_image_prompt(
-        raw_answer,
-        user_last_message
+    fake_prompt = (
+        extract_fake_image_prompt(
+            raw_answer,
+            user_last_message
+        )
     )
 
     if fake_prompt:
 
-        image_url = generate_image_url(
-            fake_prompt
+        image_url = (
+            generate_image_url(
+                fake_prompt
+            )
         )
 
         answer = (
             "تفضل، هذه الصورة التي طلبتها 🎨"
         )
 
-        return answer, image_url
+        return (
+            answer,
+            image_url
+        )
 
     # =====================================================
     # NORMAL TEXT
@@ -635,7 +735,10 @@ def call_model_with_image_tool(
         or raw_answer
     )
 
-    return clean_answer, None
+    return (
+        clean_answer,
+        None
+    )
 
 
 # =========================================================
@@ -661,6 +764,7 @@ def generate_image_endpoint():
     ).strip()
 
     if not prompt:
+
         return jsonify({
             "error":
                 "الوصف فارغ، اكتب ما تريد رسمه"
@@ -668,15 +772,19 @@ def generate_image_endpoint():
 
     try:
 
-        image_url = generate_image_url(
-            prompt
+        image_url = (
+            generate_image_url(
+                prompt
+            )
         )
 
         return jsonify({
             "status":
                 "ok",
+
             "image_url":
                 image_url,
+
             "prompt":
                 prompt
         })
@@ -702,11 +810,15 @@ def index():
             {
                 "role":
                     "system",
+
                 "content":
                     SYSTEM_PROMPT
             }
         ]
     )
+
+    # إنشاء معرف المحادثة
+    get_chat_session_id()
 
     return render_template(
         "index.html"
@@ -736,10 +848,19 @@ def chat():
     ).strip()
 
     if not user_message:
+
         return jsonify({
             "error":
                 "الرسالة فارغة"
         }), 400
+
+    # =====================================================
+    # CHAT SESSION ID
+    # =====================================================
+
+    chat_session_id = (
+        get_chat_session_id()
+    )
 
     # =====================================================
     # Wiam Dev Identity
@@ -754,24 +875,54 @@ def chat():
             "العبقرية Wiam Dev 🧠💜"
         )
 
+        # حفظ في قاعدة البيانات
+        try:
+
+            database.save_message(
+                chat_session_id,
+                "user",
+                user_message
+            )
+
+            database.save_message(
+                chat_session_id,
+                "assistant",
+                answer
+            )
+
+        except Exception as e:
+
+            print(
+                f"[DATABASE ERROR] {e}"
+            )
+
         messages = session.get(
             "messages",
             [
                 {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT
+                    "role":
+                        "system",
+
+                    "content":
+                        SYSTEM_PROMPT
                 }
             ]
         )
 
         messages.append({
-            "role": "user",
-            "content": user_message
+            "role":
+                "user",
+
+            "content":
+                user_message
         })
 
         messages.append({
-            "role": "assistant",
-            "content": answer
+            "role":
+                "assistant",
+
+            "content":
+                answer
         })
 
         if len(messages) > MAX_HISTORY_MESSAGES:
@@ -785,8 +936,11 @@ def chat():
         session["messages"] = messages
 
         return jsonify({
-            "answer": answer,
-            "sources": []
+            "answer":
+                answer,
+
+            "sources":
+                []
         })
 
     # =====================================================
@@ -799,6 +953,7 @@ def chat():
             {
                 "role":
                     "system",
+
                 "content":
                     SYSTEM_PROMPT
             }
@@ -841,6 +996,7 @@ def chat():
         outgoing_messages.append({
             "role":
                 "system",
+
             "content":
                 context_block
         })
@@ -853,6 +1009,7 @@ def chat():
     outgoing_messages.append({
         "role":
             "user",
+
         "content":
             user_message
     })
@@ -873,19 +1030,45 @@ def chat():
 
         session["messages"] = messages
 
+        error_message = (
+            "حدث خطأ في الاتصال بالنموذج: "
+            f"{str(e)}"
+        )
+
+        # حفظ الخطأ أيضاً
+        try:
+
+            database.save_message(
+                chat_session_id,
+                "user",
+                user_message
+            )
+
+            database.save_message(
+                chat_session_id,
+                "assistant",
+                error_message
+            )
+
+        except Exception as db_error:
+
+            print(
+                f"[DATABASE ERROR] {db_error}"
+            )
+
         return jsonify({
             "error":
-                "حدث خطأ في الاتصال بالنموذج: "
-                f"{str(e)}"
+                error_message
         }), 500
 
     # =====================================================
-    # SAVE CONVERSATION
+    # SAVE CONVERSATION IN FLASK SESSION
     # =====================================================
 
     messages.append({
         "role":
             "user",
+
         "content":
             user_message
     })
@@ -893,6 +1076,7 @@ def chat():
     messages.append({
         "role":
             "assistant",
+
         "content":
             answer
     })
@@ -908,12 +1092,40 @@ def chat():
     session["messages"] = messages
 
     # =====================================================
+    # SAVE CONVERSATION IN DATABASE
+    # =====================================================
+
+    try:
+
+        database.save_message(
+            chat_session_id,
+            "user",
+            user_message
+        )
+
+        database.save_message(
+            chat_session_id,
+            "assistant",
+            answer,
+            image_url=image_url,
+            sources=sources_used
+        )
+
+    except Exception as e:
+
+        # فشل التسجيل لا يجب أن يكسر البوت
+        print(
+            f"[DATABASE ERROR] {e}"
+        )
+
+    # =====================================================
     # RESPONSE
     # =====================================================
 
     result = {
         "answer":
             answer,
+
         "sources":
             sources_used
     }
@@ -1004,10 +1216,13 @@ def upload():
     return jsonify({
         "status":
             "ok",
+
         "doc_id":
             doc_id,
+
         "filename":
             file.filename,
+
         "chunks":
             chunks_count
     })
@@ -1074,15 +1289,247 @@ def reset():
         {
             "role":
                 "system",
+
             "content":
                 SYSTEM_PROMPT
         }
     ]
 
+    # بدء محادثة جديدة بمعرف جديد
+    session["chat_session_id"] = (
+        uuid.uuid4().hex
+    )
+
     return jsonify({
         "status":
             "ok"
     })
+
+
+# =========================================================
+# ADMIN LOGIN PAGE
+# =========================================================
+
+@app.route(
+    "/admin",
+    methods=["GET"]
+)
+def admin_page():
+
+    return render_template(
+        "admin.html"
+    )
+
+
+# =========================================================
+# ADMIN LOGIN
+# =========================================================
+
+@app.route(
+    "/api/admin/login",
+    methods=["POST"]
+)
+def admin_login():
+
+    if not ADMIN_PASSWORD:
+
+        return jsonify({
+            "error":
+                "ADMIN_PASSWORD غير مضبوط في Environment Variables"
+        }), 503
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    password = (
+        data.get("password")
+        or ""
+    )
+
+    # مقارنة آمنة
+    if not hmac.compare_digest(
+        str(password),
+        ADMIN_PASSWORD
+    ):
+
+        return jsonify({
+            "error":
+                "كلمة المرور غير صحيحة"
+        }), 401
+
+    session["admin_authenticated"] = True
+
+    return jsonify({
+        "status":
+            "ok"
+    })
+
+
+# =========================================================
+# ADMIN LOGOUT
+# =========================================================
+
+@app.route(
+    "/api/admin/logout",
+    methods=["POST"]
+)
+def admin_logout():
+
+    session.pop(
+        "admin_authenticated",
+        None
+    )
+
+    return jsonify({
+        "status":
+            "ok"
+    })
+
+
+# =========================================================
+# ADMIN CONVERSATIONS
+# =========================================================
+
+@app.route(
+    "/api/admin/conversations",
+    methods=["GET"]
+)
+def admin_conversations():
+
+    if not is_admin():
+
+        return jsonify({
+            "error":
+                "غير مصرح"
+        }), 401
+
+    try:
+
+        conversations = (
+            database.get_conversations()
+        )
+
+        stats = (
+            database.get_stats()
+        )
+
+        return jsonify({
+            "conversations":
+                conversations,
+
+            "stats":
+                stats
+        })
+
+    except Exception as e:
+
+        print(
+            f"[ADMIN DATABASE ERROR] {e}"
+        )
+
+        return jsonify({
+            "error":
+                f"حدث خطأ: {str(e)}"
+        }), 500
+
+
+# =========================================================
+# ADMIN CONVERSATION DETAILS
+# =========================================================
+
+@app.route(
+    "/api/admin/conversation/<session_id>",
+    methods=["GET"]
+)
+def admin_conversation(
+    session_id
+):
+
+    if not is_admin():
+
+        return jsonify({
+            "error":
+                "غير مصرح"
+        }), 401
+
+    try:
+
+        messages = (
+            database.get_messages(
+                session_id
+            )
+        )
+
+        return jsonify({
+            "messages":
+                messages
+        })
+
+    except Exception as e:
+
+        print(
+            f"[ADMIN DATABASE ERROR] {e}"
+        )
+
+        return jsonify({
+            "error":
+                f"حدث خطأ: {str(e)}"
+        }), 500
+
+
+# =========================================================
+# ADMIN DELETE CONVERSATION
+# =========================================================
+
+@app.route(
+    "/api/admin/conversation/<session_id>",
+    methods=["DELETE"]
+)
+def admin_delete_conversation(
+    session_id
+):
+
+    if not is_admin():
+
+        return jsonify({
+            "error":
+                "غير مصرح"
+        }), 401
+
+    try:
+
+        deleted = (
+            database.delete_conversation(
+                session_id
+            )
+        )
+
+        if not deleted:
+
+            return jsonify({
+                "error":
+                    "المحادثة غير موجودة"
+            }), 404
+
+        return jsonify({
+            "status":
+                "ok"
+        })
+
+    except Exception as e:
+
+        print(
+            f"[ADMIN DATABASE ERROR] {e}"
+        )
+
+        return jsonify({
+            "error":
+                f"حدث خطأ: {str(e)}"
+        }), 500
 
 
 # =========================================================
