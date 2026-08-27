@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 import faiss
-import requests
+from huggingface_hub import InferenceClient
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
@@ -27,7 +27,8 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # ─── نموذج embedding محلي (بلا API خارجي) ───
 HF_API_KEY = os.environ.get("HF_API_KEY")
-HF_EMBED_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/pipeline/feature-extraction"
+_hf_client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
+EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 EMBED_DIM = 384
 CHUNK_SIZE    = 700
@@ -37,15 +38,12 @@ _lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings عبر HuggingFace Inference API"""
-    response = requests.post(
-        HF_EMBED_URL,
-        headers={"Authorization": f"Bearer {HF_API_KEY}"},
-        json={"inputs": texts, "options": {"wait_for_model": True}},
-        timeout=60,
-    )
-    response.raise_for_status()
-    embeddings = np.array(response.json(), dtype="float32")
+    """يحصل على embeddings عبر HuggingFace Inference Providers"""
+    vectors = [
+        _hf_client.feature_extraction(text, model=EMBED_MODEL_NAME)
+        for text in texts
+    ]
+    embeddings = np.array(vectors, dtype="float32")
 
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)

@@ -9,3 +9,4 @@ faiss-cpu
 numpy
 requests
 python-dotenv
+huggingface_hub
