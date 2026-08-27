@@ -4,435 +4,1113 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wiam Dev ChatBot</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
-  :root{
-    --bg-main:#1e1e20;
-    --bg-sidebar:#161618;
-    --bg-elevated:#2a2a2d;
-    --bg-input:#2f2f33;
-    --border:#333336;
-    --text-primary:#ececec;
-    --text-secondary:#9a9aa2;
-    --accent:#6c5ce7;
-    --accent-hover:#7d70eb;
-    --accent-soft:rgba(108,92,231,.14);
-    --danger:#e5584f;
-    --radius-lg:18px;
-    --radius-md:12px;
-    --radius-sm:8px;
-    --font-ui:'Tajawal',sans-serif;
-    --font-mono:'IBM Plex Mono',monospace;
+
+:root{
+  --bg-main:#1e1e20;
+  --bg-sidebar:#161618;
+  --bg-elevated:#2a2a2d;
+  --bg-input:#2f2f33;
+  --border:#333336;
+  --text-primary:#ececec;
+  --text-secondary:#9a9aa2;
+  --accent:#6c5ce7;
+  --accent-hover:#7d70eb;
+  --accent-soft:rgba(108,92,231,.14);
+  --danger:#e5584f;
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-sm:8px;
+  --font-ui:'Tajawal',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+
+/* =========================
+   RESET
+   ========================= */
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+html,
+body{
+  width:100%;
+  height:100%;
+  max-width:100%;
+}
+
+body{
+  font-family:var(--font-ui);
+  background:var(--bg-main);
+  color:var(--text-primary);
+  display:flex;
+  overflow:hidden;
+  min-width:0;
+}
+
+/* =========================
+   SIDEBAR
+   ========================= */
+
+#sidebar{
+  width:280px;
+  min-width:280px;
+  background:var(--bg-sidebar);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  height:100dvh;
+  border-left:1px solid var(--border);
+  transition:margin-right .25s ease;
+}
+
+#sidebar.collapsed{
+  margin-right:-280px;
+}
+
+.sidebar-header{
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 4px 6px;
+}
+
+.brand-icon{
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),#a29bfe);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+}
+
+.brand-name{
+  font-weight:900;
+  font-size:16px;
+  letter-spacing:.2px;
+}
+
+.new-chat-btn{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text-primary);
+  padding:11px 14px;
+  border-radius:var(--radius-md);
+  font-family:var(--font-ui);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .15s,border-color .15s;
+  width:100%;
+}
+
+.new-chat-btn:hover{
+  background:var(--bg-elevated);
+  border-color:#444;
+}
+
+.sidebar-section-label{
+  font-size:11px;
+  color:var(--text-secondary);
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  padding:14px 16px 6px;
+  font-weight:700;
+}
+
+#docsPanelSidebar{
+  flex:1;
+  overflow-y:auto;
+  padding:0 12px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.upload-zone{
+  border:1.5px dashed var(--border);
+  border-radius:var(--radius-md);
+  padding:16px 10px;
+  text-align:center;
+  font-size:12.5px;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+  line-height:1.6;
+}
+
+.upload-zone:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.upload-zone.dragover{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+
+#docsList{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.doc-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  padding:9px 10px;
+  border-radius:var(--radius-sm);
+  font-size:12.5px;
+  gap:6px;
+}
+
+.doc-item .doc-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--text-primary);
+}
+
+.doc-item .doc-chunks{
+  color:var(--text-secondary);
+  font-size:11px;
+  flex-shrink:0;
+}
+
+.doc-item .del-btn{
+  background:none;
+  border:none;
+  color:var(--text-secondary);
+  cursor:pointer;
+  font-size:14px;
+  padding:2px 4px;
+  border-radius:4px;
+  flex-shrink:0;
+  transition:color .15s,background .15s;
+}
+
+.doc-item .del-btn:hover{
+  color:var(--danger);
+  background:rgba(229,88,79,.12);
+}
+
+.empty-hint{
+  color:var(--text-secondary);
+  font-size:12.5px;
+  text-align:center;
+  padding:10px 4px;
+}
+
+.sidebar-footer{
+  padding:12px 16px 16px;
+  border-top:1px solid var(--border);
+  font-size:12px;
+  color:var(--text-secondary);
+}
+
+/* =========================
+   MAIN AREA
+   ========================= */
+
+#main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  height:100dvh;
+  position:relative;
+  min-width:0;
+  width:100%;
+}
+
+/* =========================
+   TOP BAR
+   ========================= */
+
+#topbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+
+#toggleSidebarBtn{
+  background:none;
+  border:none;
+  color:var(--text-secondary);
+  cursor:pointer;
+  font-size:18px;
+  padding:6px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .15s,color .15s;
+}
+
+#toggleSidebarBtn:hover{
+  background:var(--bg-elevated);
+  color:var(--text-primary);
+}
+
+#topbar-title{
+  font-weight:700;
+  font-size:15px;
+  color:var(--text-primary);
+}
+
+#topbar-model{
+  font-size:12px;
+  color:var(--text-secondary);
+}
+
+/* =========================
+   CHAT
+   ========================= */
+
+#chat{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:24px 0 8px;
+  min-width:0;
+}
+
+#chat-inner{
+  width:100%;
+  max-width:720px;
+  margin:0 auto;
+  padding:0 20px;
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+  min-width:0;
+}
+
+/* =========================
+   EMPTY STATE
+   ========================= */
+
+#emptyState{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:14px;
+  color:var(--text-secondary);
+  padding:40px 20px;
+}
+
+#emptyState .empty-icon{
+  width:56px;
+  height:56px;
+  border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),#a29bfe);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+}
+
+#emptyState h2{
+  color:var(--text-primary);
+  font-size:19px;
+  font-weight:900;
+}
+
+#emptyState p{
+  font-size:13.5px;
+  max-width:340px;
+  line-height:1.7;
+}
+
+/* =========================
+   MESSAGES
+   ========================= */
+
+.msg-row{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  width:100%;
+  min-width:0;
+}
+
+.msg-row.user{
+  flex-direction:row;
+}
+
+.avatar{
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  flex-shrink:0;
+  margin-top:2px;
+}
+
+.avatar.bot{
+  background:linear-gradient(135deg,var(--accent),#a29bfe);
+}
+
+.avatar.user{
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+}
+
+.msg-body{
+  flex:1;
+  min-width:0;
+  max-width:100%;
+}
+
+.msg-name{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--text-secondary);
+  margin-bottom:4px;
+}
+
+.msg-content{
+  font-size:15px;
+  line-height:1.85;
+  color:var(--text-primary);
+  white-space:pre-wrap;
+  word-wrap:break-word;
+  overflow-wrap:anywhere;
+  max-width:100%;
+}
+
+.msg-content.error{
+  color:var(--danger);
+}
+
+.msg-content pre{
+  background:#101012;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  overflow-x:auto;
+  direction:ltr;
+  text-align:left;
+  font-family:var(--font-mono);
+  font-size:13px;
+  margin:8px 0;
+  max-width:100%;
+}
+
+.msg-content code{
+  background:#101012;
+  padding:2px 6px;
+  border-radius:5px;
+  font-family:var(--font-mono);
+  font-size:13px;
+  direction:ltr;
+  display:inline-block;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+
+.msg-content pre code{
+  background:none;
+  padding:0;
+}
+
+.msg-image{
+  margin-top:10px;
+  max-width:100%;
+  border-radius:var(--radius-md);
+  border:1px solid var(--border);
+  display:block;
+  overflow:hidden;
+  background:var(--bg-elevated);
+}
+
+.msg-image img{
+  width:100%;
+  max-width:420px;
+  height:auto;
+  display:block;
+}
+
+.msg-image .img-loading{
+  padding:14px;
+  font-size:12.5px;
+  color:var(--text-secondary);
+  text-align:center;
+}
+
+.sources-note{
+  font-size:12px;
+  color:var(--text-secondary);
+  margin-top:8px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  overflow-wrap:anywhere;
+}
+
+/* =========================
+   TYPING
+   ========================= */
+
+.typing-dots{
+  display:flex;
+  gap:4px;
+  padding:4px 0;
+}
+
+.typing-dots span{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--text-secondary);
+  animation:bounce 1.2s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2){
+  animation-delay:.15s;
+}
+
+.typing-dots span:nth-child(3){
+  animation-delay:.3s;
+}
+
+@keyframes bounce{
+  0%,80%,100%{
+    transform:translateY(0);
+    opacity:.5;
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html,body{height:100%;}
+
+  40%{
+    transform:translateY(-4px);
+    opacity:1;
+  }
+}
+
+/* =========================
+   INPUT AREA
+   ========================= */
+
+#inputArea{
+  padding:14px 20px 20px;
+  flex-shrink:0;
+  width:100%;
+  min-width:0;
+}
+
+#inputWrap{
+  width:100%;
+  max-width:720px;
+  margin:0 auto;
+}
+
+form#chatForm{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  background:var(--bg-input);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:8px 10px 8px 8px;
+  transition:border-color .15s;
+  width:100%;
+  min-width:0;
+}
+
+form#chatForm:focus-within{
+  border-color:var(--accent);
+}
+
+#attachBtn{
+  background:none;
+  border:none;
+  color:var(--text-secondary);
+  cursor:pointer;
+  font-size:19px;
+  padding:8px;
+  border-radius:var(--radius-sm);
+  flex-shrink:0;
+  transition:background .15s,color .15s;
+}
+
+#attachBtn:hover{
+  background:var(--bg-elevated);
+  color:var(--text-primary);
+}
+
+#msgInput{
+  flex:1;
+  min-width:0;
+  width:100%;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text-primary);
+  font-family:var(--font-ui);
+  font-size:15px;
+  padding:9px 4px;
+  resize:none;
+  max-height:160px;
+  line-height:1.5;
+}
+
+#msgInput::placeholder{
+  color:var(--text-secondary);
+}
+
+#sendBtn{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  border-radius:var(--radius-md);
+  cursor:pointer;
+  font-size:16px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .15s,opacity .15s;
+}
+
+#sendBtn:hover:not(:disabled){
+  background:var(--accent-hover);
+}
+
+#sendBtn:disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}
+
+#inputFootnote{
+  text-align:center;
+  font-size:11.5px;
+  color:var(--text-secondary);
+  margin-top:10px;
+}
+
+#fileInput{
+  display:none;
+}
+
+/* =========================
+   SCROLLBAR
+   ========================= */
+
+::-webkit-scrollbar{
+  width:8px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:#3a3a3e;
+  border-radius:8px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+  background:#4a4a4e;
+}
+
+
+/* ==================================================
+   MOBILE RESPONSIVE
+   ================================================== */
+
+@media (max-width:760px){
+
+  html,
   body{
-    font-family:var(--font-ui);
-    background:var(--bg-main);
-    color:var(--text-primary);
-    display:flex;
+    width:100%;
+    max-width:100%;
     overflow:hidden;
   }
 
-  /* ============ SIDEBAR ============ */
+  body{
+    min-width:0;
+  }
+
+  /* =========================
+     SIDEBAR MOBILE
+     ========================= */
+
   #sidebar{
-    width:280px;
-    min-width:280px;
-    background:var(--bg-sidebar);
-    display:flex;
-    flex-direction:column;
+    position:fixed;
+    top:0;
+    right:0;
+
+    width:min(280px,82vw);
+    min-width:0;
+    max-width:280px;
+
     height:100vh;
-    border-left:1px solid var(--border);
-    transition:margin-right .25s ease;
-  }
-  #sidebar.collapsed{ margin-right:-280px; }
+    height:100dvh;
 
-  .sidebar-header{
-    padding:16px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:0 4px 6px;
-  }
-  .brand-icon{
-    width:32px; height:32px;
-    border-radius:9px;
-    background:linear-gradient(135deg,var(--accent),#a29bfe);
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px;
-    flex-shrink:0;
-  }
-  .brand-name{ font-weight:900; font-size:16px; letter-spacing:.2px; }
+    z-index:1000;
 
-  .new-chat-btn{
-    display:flex; align-items:center; gap:10px;
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--text-primary);
-    padding:11px 14px;
-    border-radius:var(--radius-md);
-    font-family:var(--font-ui);
-    font-size:14px;
-    font-weight:500;
-    cursor:pointer;
-    transition:background .15s, border-color .15s;
+    margin-right:0;
+
+    transform:translateX(100%);
+
+    transition:transform .25s ease;
+
+    box-shadow:-8px 0 30px rgba(0,0,0,.45);
+  }
+
+  /* القائمة مفتوحة */
+  #sidebar:not(.collapsed){
+    transform:translateX(0);
+  }
+
+  /* القائمة مغلقة */
+  #sidebar.collapsed{
+    margin-right:0;
+    transform:translateX(100%);
+  }
+
+  /* =========================
+     MAIN
+     ========================= */
+
+  #main{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+
+  /* =========================
+     TOPBAR
+     ========================= */
+
+  #topbar{
+    padding:12px 14px;
+    min-height:58px;
     width:100%;
   }
-  .new-chat-btn:hover{ background:var(--bg-elevated); border-color:#444; }
 
-  .sidebar-section-label{
-    font-size:11px;
-    color:var(--text-secondary);
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    padding:14px 16px 6px;
-    font-weight:700;
+  #toggleSidebarBtn{
+    font-size:20px;
+    padding:7px;
+    flex-shrink:0;
   }
 
-  #docsPanelSidebar{
-    flex:1;
-    overflow-y:auto;
-    padding:0 12px 12px;
-    display:flex;
-    flex-direction:column;
+  #topbar-title{
+    font-size:14px;
+  }
+
+  /* =========================
+     CHAT
+     ========================= */
+
+  #chat{
+    width:100%;
+    max-width:100%;
+    padding:18px 0 8px;
+    overflow-x:hidden;
+  }
+
+  #chat-inner{
+    width:100%;
+    max-width:720px;
+    padding:0 14px;
+    gap:18px;
+    min-width:0;
+  }
+
+  /* =========================
+     MESSAGES
+     ========================= */
+
+  .msg-row{
+    width:100%;
+    max-width:100%;
     gap:8px;
   }
 
-  .upload-zone{
-    border:1.5px dashed var(--border);
-    border-radius:var(--radius-md);
-    padding:16px 10px;
-    text-align:center;
-    font-size:12.5px;
-    color:var(--text-secondary);
-    cursor:pointer;
-    transition:border-color .15s, color .15s, background .15s;
-    line-height:1.6;
+  .avatar{
+    width:28px;
+    height:28px;
+    min-width:28px;
+    font-size:13px;
   }
-  .upload-zone:hover{ border-color:var(--accent); color:var(--accent); }
-  .upload-zone.dragover{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
 
-  #docsList{ display:flex; flex-direction:column; gap:6px; }
-  .doc-item{
-    display:flex; justify-content:space-between; align-items:center;
-    background:var(--bg-elevated);
-    border:1px solid var(--border);
-    padding:9px 10px;
-    border-radius:var(--radius-sm);
-    font-size:12.5px;
-    gap:6px;
+  .msg-body{
+    min-width:0;
+    width:100%;
+    max-width:calc(100% - 36px);
   }
-  .doc-item .doc-name{
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    display:flex; align-items:center; gap:6px;
-    color:var(--text-primary);
-  }
-  .doc-item .doc-chunks{ color:var(--text-secondary); font-size:11px; flex-shrink:0; }
-  .doc-item .del-btn{
-    background:none; border:none; color:var(--text-secondary);
-    cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px;
-    flex-shrink:0; transition:color .15s, background .15s;
-  }
-  .doc-item .del-btn:hover{ color:var(--danger); background:rgba(229,88,79,.12); }
-  .empty-hint{ color:var(--text-secondary); font-size:12.5px; text-align:center; padding:10px 4px; }
 
-  .sidebar-footer{
-    padding:12px 16px 16px;
-    border-top:1px solid var(--border);
+  .msg-content{
+    font-size:14px;
+    line-height:1.75;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+    max-width:100%;
+  }
+
+  .msg-content pre{
+    max-width:100%;
+    width:100%;
+    overflow-x:auto;
     font-size:12px;
-    color:var(--text-secondary);
+    padding:10px;
   }
 
-  /* ============ MAIN AREA ============ */
-  #main{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    height:100vh;
-    position:relative;
+  .msg-content code{
+    font-size:12px;
+    max-width:100%;
+  }
+
+  .msg-image{
+    max-width:100%;
+    width:100%;
+  }
+
+  .msg-image img{
+    width:100%;
+    max-width:100%;
+    height:auto;
+  }
+
+  /* =========================
+     INPUT
+     ========================= */
+
+  #inputArea{
+    width:100%;
+    max-width:100%;
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  #inputWrap{
+    width:100%;
+    max-width:none;
+  }
+
+  form#chatForm{
+    width:100%;
+    max-width:100%;
+    gap:5px;
+    padding:6px;
+    border-radius:15px;
+  }
+
+  #attachBtn{
+    font-size:17px;
+    padding:7px;
+  }
+
+  #msgInput{
+    min-width:0;
+    width:100%;
+    font-size:14px;
+    padding:8px 3px;
+  }
+
+  #sendBtn{
+    width:36px;
+    height:36px;
+    min-width:36px;
+    border-radius:10px;
+  }
+
+  #inputFootnote{
+    font-size:10px;
+    margin-top:7px;
+  }
+}
+
+
+/* ==================================================
+   SMALL PHONES
+   ================================================== */
+
+@media (max-width:480px){
+
+  #sidebar{
+    width:85vw;
+    max-width:300px;
   }
 
   #topbar{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:14px 20px;
-    border-bottom:1px solid var(--border);
-    flex-shrink:0;
+    padding:10px 12px;
   }
-  #toggleSidebarBtn{
-    background:none; border:none; color:var(--text-secondary);
-    cursor:pointer; font-size:18px; padding:6px; border-radius:6px;
-    display:flex; align-items:center; justify-content:center;
-    transition:background .15s, color .15s;
-  }
-  #toggleSidebarBtn:hover{ background:var(--bg-elevated); color:var(--text-primary); }
-  #topbar-title{ font-weight:700; font-size:15px; color:var(--text-primary); }
-  #topbar-model{ font-size:12px; color:var(--text-secondary); }
 
   #chat{
-    flex:1;
-    overflow-y:auto;
-    padding:24px 0 8px;
+    padding-top:14px;
   }
+
   #chat-inner{
-    max-width:720px;
-    margin:0 auto;
-    padding:0 20px;
-    display:flex;
-    flex-direction:column;
-    gap:22px;
+    padding:0 11px;
+    gap:16px;
   }
 
-  /* empty state */
-  #emptyState{
-    height:100%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    gap:14px;
-    color:var(--text-secondary);
-    padding:40px 20px;
+  .msg-row{
+    gap:7px;
   }
-  #emptyState .empty-icon{
-    width:56px; height:56px; border-radius:16px;
-    background:linear-gradient(135deg,var(--accent),#a29bfe);
-    display:flex; align-items:center; justify-content:center;
-    font-size:26px;
-  }
-  #emptyState h2{ color:var(--text-primary); font-size:19px; font-weight:900; }
-  #emptyState p{ font-size:13.5px; max-width:340px; line-height:1.7; }
 
-  .msg-row{ display:flex; gap:12px; align-items:flex-start; }
-  .msg-row.user{ flex-direction:row; }
   .avatar{
-    width:30px; height:30px; border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:14px; flex-shrink:0; margin-top:2px;
+    width:27px;
+    height:27px;
+    min-width:27px;
+    border-radius:7px;
   }
-  .avatar.bot{ background:linear-gradient(135deg,var(--accent),#a29bfe); }
-  .avatar.user{ background:var(--bg-elevated); border:1px solid var(--border); }
 
-  .msg-body{ flex:1; min-width:0; }
-  .msg-name{ font-size:12.5px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; }
+  .msg-name{
+    font-size:11.5px;
+  }
+
   .msg-content{
-    font-size:15px;
-    line-height:1.85;
-    color:var(--text-primary);
-    white-space:pre-wrap;
-    word-wrap:break-word;
-  }
-  .msg-content.error{ color:var(--danger); }
-
-  .msg-content pre{
-    background:#101012;
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    padding:12px 14px;
-    overflow-x:auto;
-    direction:ltr;
-    text-align:left;
-    font-family:var(--font-mono);
-    font-size:13px;
-    margin:8px 0;
-  }
-  .msg-content code{
-    background:#101012;
-    padding:2px 6px;
-    border-radius:5px;
-    font-family:var(--font-mono);
-    font-size:13px;
-    direction:ltr;
-    display:inline-block;
-  }
-  .msg-content pre code{ background:none; padding:0; }
-
-  .msg-image{
-    margin-top:10px;
-    max-width:100%;
-    border-radius:var(--radius-md);
-    border:1px solid var(--border);
-    display:block;
-    overflow:hidden;
-    background:var(--bg-elevated);
-  }
-  .msg-image img{
-    width:100%;
-    max-width:420px;
-    display:block;
-  }
-  .msg-image .img-loading{
-    padding:14px;
-    font-size:12.5px;
-    color:var(--text-secondary);
-    text-align:center;
+    font-size:13.5px;
+    line-height:1.7;
   }
 
-  .sources-note{
-    font-size:12px;
-    color:var(--text-secondary);
-    margin-top:8px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-
-  .typing-dots{ display:flex; gap:4px; padding:4px 0; }
-  .typing-dots span{
-    width:6px; height:6px; border-radius:50%;
-    background:var(--text-secondary);
-    animation:bounce 1.2s infinite ease-in-out;
-  }
-  .typing-dots span:nth-child(2){ animation-delay:.15s; }
-  .typing-dots span:nth-child(3){ animation-delay:.3s; }
-  @keyframes bounce{ 0%,80%,100%{ transform:translateY(0); opacity:.5; } 40%{ transform:translateY(-4px); opacity:1; } }
-
-  /* ============ INPUT AREA ============ */
   #inputArea{
-    padding:14px 20px 20px;
-    flex-shrink:0;
+    padding-left:8px;
+    padding-right:8px;
   }
-  #inputWrap{
-    max-width:720px;
-    margin:0 auto;
-  }
-  form#chatForm{
-    display:flex;
-    align-items:flex-end;
-    gap:8px;
-    background:var(--bg-input);
-    border:1px solid var(--border);
-    border-radius:var(--radius-lg);
-    padding:8px 10px 8px 8px;
-    transition:border-color .15s;
-  }
-  form#chatForm:focus-within{ border-color:var(--accent); }
 
-  #attachBtn{
-    background:none; border:none; color:var(--text-secondary);
-    cursor:pointer; font-size:19px; padding:8px; border-radius:var(--radius-sm);
-    flex-shrink:0; transition:background .15s, color .15s;
+  form#chatForm{
+    border-radius:14px;
   }
-  #attachBtn:hover{ background:var(--bg-elevated); color:var(--text-primary); }
 
   #msgInput{
-    flex:1;
-    background:transparent;
-    border:none;
-    outline:none;
-    color:var(--text-primary);
-    font-family:var(--font-ui);
-    font-size:15px;
-    padding:9px 4px;
-    resize:none;
-    max-height:160px;
-    line-height:1.5;
+    font-size:14px;
   }
-  #msgInput::placeholder{ color:var(--text-secondary); }
+}
+
+
+/* ==================================================
+   VERY SMALL PHONES
+   ================================================== */
+
+@media (max-width:360px){
+
+  #sidebar{
+    width:88vw;
+  }
+
+  #chat-inner{
+    padding:0 9px;
+  }
+
+  .avatar{
+    width:25px;
+    height:25px;
+    min-width:25px;
+    font-size:12px;
+  }
+
+  .msg-content{
+    font-size:13px;
+  }
+
+  #attachBtn{
+    padding:6px;
+  }
 
   #sendBtn{
-    background:var(--accent);
-    color:#fff;
-    border:none;
-    width:38px; height:38px;
-    border-radius:var(--radius-md);
-    cursor:pointer;
-    font-size:16px;
-    flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    transition:background .15s, opacity .15s;
+    width:34px;
+    height:34px;
+    min-width:34px;
   }
-  #sendBtn:hover:not(:disabled){ background:var(--accent-hover); }
-  #sendBtn:disabled{ opacity:.4; cursor:not-allowed; }
+}
 
-  #inputFootnote{
-    text-align:center;
-    font-size:11.5px;
-    color:var(--text-secondary);
-    margin-top:10px;
-  }
-
-  #fileInput{ display:none; }
-
-  /* scrollbar */
-  ::-webkit-scrollbar{ width:8px; }
-  ::-webkit-scrollbar-track{ background:transparent; }
-  ::-webkit-scrollbar-thumb{ background:#3a3a3e; border-radius:8px; }
-  ::-webkit-scrollbar-thumb:hover{ background:#4a4a4e; }
-
-  @media (max-width:760px){
-    #sidebar{ position:fixed; z-index:20; right:0; top:0; }
-    #sidebar.collapsed{ margin-right:-280px; }
-    #sidebar:not(.collapsed){ box-shadow:-6px 0 24px rgba(0,0,0,.4); }
-  }
 </style>
 </head>
+
 <body>
 
-  <aside id="sidebar">
-    <div class="sidebar-header">
-      <div class="brand">
-        <div class="brand-icon">🤖</div>
-        <div class="brand-name">Wiam Dev ChatBot</div>
-      </div>
-      <button class="new-chat-btn" id="resetBtn">
-        <span>＋</span><span>محادثة جديدة</span>
-      </button>
+<!-- =========================
+     SIDEBAR
+     ========================= -->
+
+<aside id="sidebar">
+
+  <div class="sidebar-header">
+
+    <div class="brand">
+      <div class="brand-icon">🤖</div>
+      <div class="brand-name">Wiam Dev ChatBot</div>
     </div>
 
-    <div class="sidebar-section-label">قاعدة المعرفة</div>
-    <div id="docsPanelSidebar">
-      <div class="upload-zone" id="uploadZone">
-        📎 اسحب ملفاً هنا أو اضغط للاختيار<br>
-        <span style="opacity:.7">PDF · Word · صورة · txt</span>
-      </div>
-      <input type="file" id="fileInput" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.txt,.md" />
-      <div id="docsList"></div>
-    </div>
+    <button class="new-chat-btn" id="resetBtn">
+      <span>＋</span>
+      <span>محادثة جديدة</span>
+    </button>
 
-    <div class="sidebar-footer">يعمل عبر Groq API — gpt-oss-120b</div>
-  </aside>
-
-  <div id="main">
-    <div id="topbar">
-      <button id="toggleSidebarBtn" title="إظهار/إخفاء القائمة">☰</button>
-      <div>
-        <div id="topbar-title">المحادثة</div>
-      </div>
-    </div>
-
-    <div id="chat">
-      <div id="chat-inner">
-        <div id="emptyState">
-          <div class="empty-icon">🤖</div>
-          <h2>كيف يمكنني مساعدتك اليوم؟</h2>
-          <p>اسألني أي شيء، أو ارفع مستنداً (PDF/Word/صورة) من القائمة الجانبية لأجيب بناءً على محتواه.</p>
-        </div>
-      </div>
-    </div>
-
-    <div id="inputArea">
-      <div id="inputWrap">
-        <form id="chatForm">
-          <button type="button" id="attachBtn" title="رفع مستند">📎</button>
-          <textarea id="msgInput" rows="1" placeholder="اكتب رسالتك..."></textarea>
-          <button id="sendBtn" type="submit" title="إرسال">➤</button>
-        </form>
-        <div id="inputFootnote">قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة</div>
-      </div>
-    </div>
   </div>
 
+  <div class="sidebar-section-label">
+    قاعدة المعرفة
+  </div>
+
+  <div id="docsPanelSidebar">
+
+    <div class="upload-zone" id="uploadZone">
+      📎 اسحب ملفاً هنا أو اضغط للاختيار<br>
+      <span style="opacity:.7">
+        PDF · Word · صورة · txt
+      </span>
+    </div>
+
+    <input
+      type="file"
+      id="fileInput"
+      accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.txt,.md"
+    />
+
+    <div id="docsList"></div>
+
+  </div>
+
+  <div class="sidebar-footer">
+    يعمل عبر Groq API — gpt-oss-120b
+  </div>
+
+</aside>
+
+
+<!-- =========================
+     MAIN
+     ========================= -->
+
+<div id="main">
+
+  <!-- TOP BAR -->
+
+  <div id="topbar">
+
+    <button
+      id="toggleSidebarBtn"
+      title="إظهار/إخفاء القائمة"
+    >
+      ☰
+    </button>
+
+    <div>
+      <div id="topbar-title">
+        المحادثة
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- CHAT -->
+
+  <div id="chat">
+
+    <div id="chat-inner">
+
+      <div id="emptyState">
+
+        <div class="empty-icon">
+          🤖
+        </div>
+
+        <h2>
+          كيف يمكنني مساعدتك اليوم؟
+        </h2>
+
+        <p>
+          اسألني أي شيء، أو ارفع مستنداً
+          (PDF/Word/صورة) من القائمة الجانبية
+          لأجيب بناءً على محتواه.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- INPUT -->
+
+  <div id="inputArea">
+
+    <div id="inputWrap">
+
+      <form id="chatForm">
+
+        <button
+          type="button"
+          id="attachBtn"
+          title="رفع مستند"
+        >
+          📎
+        </button>
+
+        <textarea
+          id="msgInput"
+          rows="1"
+          placeholder="اكتب رسالتك..."
+        ></textarea>
+
+        <button
+          id="sendBtn"
+          type="submit"
+          title="إرسال"
+        >
+          ➤
+        </button>
+
+      </form>
+
+      <div id="inputFootnote">
+        قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
 <script>
+
 const chatEl = document.getElementById("chat");
 const chatInner = document.getElementById("chat-inner");
 const emptyState = document.getElementById("emptyState");
@@ -449,225 +1127,817 @@ const docsList = document.getElementById("docsList");
 
 let hasStarted = false;
 
+
+/* =========================
+   ESCAPE HTML
+   ========================= */
+
 function escapeHtml(str){
-  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  return str.replace(
+    /[&<>"']/g,
+    m => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    }[m])
+  );
+
 }
+
+
+/* =========================
+   MARKDOWN
+   ========================= */
+
 function renderMarkdown(text){
+
   let html = escapeHtml(text);
-  html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${code.trim()}</code></pre>`);
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\n/g, '<br>');
+
+  html = html.replace(
+    /```([\s\S]*?)```/g,
+    (m, code) =>
+      `<pre><code>${code.trim()}</code></pre>`
+  );
+
+  html = html.replace(
+    /`([^`]+)`/g,
+    '<code>$1</code>'
+  );
+
+  html = html.replace(
+    /\*\*([^*]+)\*\*/g,
+    '<strong>$1</strong>'
+  );
+
+  html = html.replace(
+    /\n/g,
+    '<br>'
+  );
+
   return html;
 }
 
+
+/* =========================
+   START CHAT
+   ========================= */
+
 function ensureStarted(){
+
   if(!hasStarted){
+
     emptyState.remove();
+
     hasStarted = true;
   }
+
 }
 
-function addMessage(text, sender, isError=false, imageUrl=null){
+
+/* =========================
+   ADD MESSAGE
+   ========================= */
+
+function addMessage(
+  text,
+  sender,
+  isError=false,
+  imageUrl=null
+){
+
   ensureStarted();
+
   const row = document.createElement("div");
-  row.className = "msg-row " + sender;
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar " + sender;
-  avatar.textContent = sender === "user" ? "🧑" : "🤖";
+  row.className =
+    "msg-row " + sender;
 
-  const body = document.createElement("div");
-  body.className = "msg-body";
 
-  const name = document.createElement("div");
-  name.className = "msg-name";
-  name.textContent = sender === "user" ? "أنت" : "المساعد";
+  const avatar =
+    document.createElement("div");
 
-  const content = document.createElement("div");
-  content.className = "msg-content" + (isError ? " error" : "");
-  content.innerHTML = renderMarkdown(text);
+  avatar.className =
+    "avatar " + sender;
+
+  avatar.textContent =
+    sender === "user"
+      ? "🧑"
+      : "🤖";
+
+
+  const body =
+    document.createElement("div");
+
+  body.className =
+    "msg-body";
+
+
+  const name =
+    document.createElement("div");
+
+  name.className =
+    "msg-name";
+
+  name.textContent =
+    sender === "user"
+      ? "أنت"
+      : "المساعد";
+
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "msg-content" +
+    (isError ? " error" : "");
+
+  content.innerHTML =
+    renderMarkdown(text);
+
 
   body.appendChild(name);
   body.appendChild(content);
 
-  if (imageUrl){
-    const imgWrap = document.createElement("div");
-    imgWrap.className = "msg-image";
-    imgWrap.innerHTML = '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
 
-    const img = document.createElement("img");
-    img.alt = "صورة مولّدة";
-    img.onload = () => { imgWrap.innerHTML = ""; imgWrap.appendChild(img); chatEl.scrollTop = chatEl.scrollHeight; };
-    img.onerror = () => { imgWrap.innerHTML = '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>'; };
-    img.src = imageUrl;
-    if (img.complete && img.naturalWidth > 0){
+  if(imageUrl){
+
+    const imgWrap =
+      document.createElement("div");
+
+    imgWrap.className =
+      "msg-image";
+
+    imgWrap.innerHTML =
+      '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
+
+
+    const img =
+      document.createElement("img");
+
+    img.alt =
+      "صورة مولّدة";
+
+
+    img.onload = () => {
+
+      imgWrap.innerHTML = "";
+
+      imgWrap.appendChild(img);
+
+      chatEl.scrollTop =
+        chatEl.scrollHeight;
+
+    };
+
+
+    img.onerror = () => {
+
+      imgWrap.innerHTML =
+        '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>';
+
+    };
+
+
+    img.src =
+      imageUrl;
+
+
+    if(
+      img.complete &&
+      img.naturalWidth > 0
+    ){
+
       img.onload();
+
     }
 
+
     body.appendChild(imgWrap);
+
   }
+
 
   row.appendChild(avatar);
   row.appendChild(body);
+
   chatInner.appendChild(row);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  return { row, content };
+
+  chatEl.scrollTop =
+    chatEl.scrollHeight;
+
+  return {
+    row,
+    content
+  };
+
 }
 
-function addSourcesNote(container, sources){
-  if(!sources || sources.length === 0) return;
-  const div = document.createElement("div");
-  div.className = "sources-note";
-  div.textContent = "📎 المصادر: " + sources.join("، ");
+
+/* =========================
+   SOURCES
+   ========================= */
+
+function addSourcesNote(
+  container,
+  sources
+){
+
+  if(
+    !sources ||
+    sources.length === 0
+  ){
+    return;
+  }
+
+
+  const div =
+    document.createElement("div");
+
+  div.className =
+    "sources-note";
+
+  div.textContent =
+    "📎 المصادر: " +
+    sources.join("، ");
+
   container.appendChild(div);
-  chatEl.scrollTop = chatEl.scrollHeight;
+
+  chatEl.scrollTop =
+    chatEl.scrollHeight;
+
 }
+
+
+/* =========================
+   TYPING
+   ========================= */
 
 function addTyping(){
+
   ensureStarted();
-  const row = document.createElement("div");
-  row.className = "msg-row bot";
-  row.id = "typingRow";
+
+  const row =
+    document.createElement("div");
+
+  row.className =
+    "msg-row bot";
+
+  row.id =
+    "typingRow";
+
+
   row.innerHTML = `
-    <div class="avatar bot">🤖</div>
+
+    <div class="avatar bot">
+      🤖
+    </div>
+
     <div class="msg-body">
-      <div class="msg-name">المساعد</div>
-      <div class="typing-dots"><span></span><span></span><span></span></div>
-    </div>`;
+
+      <div class="msg-name">
+        المساعد
+      </div>
+
+      <div class="typing-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+    </div>
+
+  `;
+
+
   chatInner.appendChild(row);
-  chatEl.scrollTop = chatEl.scrollHeight;
+
+  chatEl.scrollTop =
+    chatEl.scrollHeight;
+
 }
+
+
 function removeTyping(){
-  const el = document.getElementById("typingRow");
-  if (el) el.remove();
+
+  const el =
+    document.getElementById("typingRow");
+
+  if(el){
+    el.remove();
+  }
+
 }
 
-// auto-resize textarea
-input.addEventListener("input", () => {
-  input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 160) + "px";
-});
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey){
+
+/* =========================
+   TEXTAREA AUTO RESIZE
+   ========================= */
+
+input.addEventListener(
+  "input",
+  () => {
+
+    input.style.height =
+      "auto";
+
+    input.style.height =
+      Math.min(
+        input.scrollHeight,
+        160
+      ) + "px";
+
+  }
+);
+
+
+/* =========================
+   ENTER TO SEND
+   ========================= */
+
+input.addEventListener(
+  "keydown",
+  (e) => {
+
+    if(
+      e.key === "Enter" &&
+      !e.shiftKey
+    ){
+
+      e.preventDefault();
+
+      form.requestSubmit();
+
+    }
+
+  }
+);
+
+
+/* =========================
+   SEND MESSAGE
+   ========================= */
+
+form.addEventListener(
+  "submit",
+  async (e) => {
+
     e.preventDefault();
-    form.requestSubmit();
-  }
-});
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const text = input.value.trim();
-  if (!text) return;
+    const text =
+      input.value.trim();
 
-  addMessage(text, "user");
-  input.value = "";
-  input.style.height = "auto";
-  sendBtn.disabled = true;
-  addTyping();
-
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text })
-    });
-    const data = await res.json();
-    removeTyping();
-
-    if (!res.ok){
-      addMessage(data.error || "حدث خطأ غير متوقع", "bot", true);
-    } else {
-      const { content } = addMessage(data.answer, "bot", false, data.image_url || null);
-      addSourcesNote(content, data.sources);
-    }
-  } catch (err) {
-    removeTyping();
-    addMessage("تعذر الاتصال بالسيرفر", "bot", true);
-  } finally {
-    sendBtn.disabled = false;
-    input.focus();
-  }
-});
-
-resetBtn.addEventListener("click", async () => {
-  await fetch("/api/reset", { method: "POST" });
-  chatInner.innerHTML = "";
-  chatInner.appendChild(emptyState);
-  hasStarted = false;
-});
-
-toggleSidebarBtn.addEventListener("click", () => {
-  sidebar.classList.toggle("collapsed");
-});
-
-// ---- رفع الملفات ----
-attachBtn.addEventListener("click", () => fileInput.click());
-uploadZone.addEventListener("click", () => fileInput.click());
-uploadZone.addEventListener("dragover", (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
-uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
-uploadZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  uploadZone.classList.remove("dragover");
-  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener("change", () => {
-  if (fileInput.files.length) uploadFile(fileInput.files[0]);
-});
-
-async function uploadFile(file){
-  const originalHTML = uploadZone.innerHTML;
-  uploadZone.innerHTML = `⏳ جارٍ معالجة: ${file.name}`;
-  const formData = new FormData();
-  formData.append("file", file);
-  try {
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-    const data = await res.json();
-    if (!res.ok){
-      alert(data.error || "فشل رفع الملف");
-    } else {
-      addMessage(`✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`, "bot");
-    }
-  } catch (err) {
-    alert("تعذر رفع الملف");
-  } finally {
-    uploadZone.innerHTML = originalHTML;
-    fileInput.value = "";
-    loadDocuments();
-  }
-}
-
-async function loadDocuments(){
-  try {
-    const res = await fetch("/api/documents");
-    const data = await res.json();
-    docsList.innerHTML = "";
-    if (!data.documents || data.documents.length === 0){
-      docsList.innerHTML = '<div class="empty-hint">لا توجد مستندات بعد</div>';
+    if(!text){
       return;
     }
-    data.documents.forEach(doc => {
-      const div = document.createElement("div");
-      div.className = "doc-item";
-      div.innerHTML = `<span class="doc-name">📄 ${doc.source}</span><span class="doc-chunks">${doc.chunks}</span>`;
-      const delBtn = document.createElement("button");
-      delBtn.className = "del-btn";
-      delBtn.textContent = "✕";
-      delBtn.title = "حذف";
-      delBtn.onclick = async () => {
-        await fetch(`/api/documents/${doc.doc_id}`, { method: "DELETE" });
-        loadDocuments();
-      };
-      div.appendChild(delBtn);
-      docsList.appendChild(div);
-    });
-  } catch (err) {
-    docsList.innerHTML = '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
+
+
+    addMessage(
+      text,
+      "user"
+    );
+
+
+    input.value = "";
+
+    input.style.height =
+      "auto";
+
+    sendBtn.disabled =
+      true;
+
+    addTyping();
+
+
+    try{
+
+      const res =
+        await fetch(
+          "/api/chat",
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "application/json"
+            },
+            body:
+              JSON.stringify({
+                message:text
+              })
+          }
+        );
+
+
+      const data =
+        await res.json();
+
+      removeTyping();
+
+
+      if(!res.ok){
+
+        addMessage(
+          data.error ||
+          "حدث خطأ غير متوقع",
+          "bot",
+          true
+        );
+
+      }
+      else{
+
+        const {
+          content
+        } =
+          addMessage(
+            data.answer,
+            "bot",
+            false,
+            data.image_url ||
+            null
+          );
+
+        addSourcesNote(
+          content,
+          data.sources
+        );
+
+      }
+
+    }
+    catch(err){
+
+      removeTyping();
+
+      addMessage(
+        "تعذر الاتصال بالسيرفر",
+        "bot",
+        true
+      );
+
+    }
+    finally{
+
+      sendBtn.disabled =
+        false;
+
+      input.focus();
+
+    }
+
   }
+);
+
+
+/* =========================
+   NEW CHAT
+   ========================= */
+
+resetBtn.addEventListener(
+  "click",
+  async () => {
+
+    await fetch(
+      "/api/reset",
+      {
+        method:"POST"
+      }
+    );
+
+
+    chatInner.innerHTML =
+      "";
+
+
+    chatInner.appendChild(
+      emptyState
+    );
+
+
+    hasStarted =
+      false;
+
+
+    /*
+      على الهاتف نغلق القائمة
+      بعد إنشاء محادثة جديدة
+    */
+
+    if(
+      window.innerWidth <= 760
+    ){
+
+      sidebar.classList.add(
+        "collapsed"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   SIDEBAR TOGGLE
+   ========================= */
+
+toggleSidebarBtn.addEventListener(
+  "click",
+  () => {
+
+    sidebar.classList.toggle(
+      "collapsed"
+    );
+
+  }
+);
+
+
+/* =========================
+   UPLOAD
+   ========================= */
+
+attachBtn.addEventListener(
+  "click",
+  () => {
+
+    fileInput.click();
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "click",
+  () => {
+
+    fileInput.click();
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "dragover",
+  (e) => {
+
+    e.preventDefault();
+
+    uploadZone.classList.add(
+      "dragover"
+    );
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "dragleave",
+  () => {
+
+    uploadZone.classList.remove(
+      "dragover"
+    );
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "drop",
+  (e) => {
+
+    e.preventDefault();
+
+    uploadZone.classList.remove(
+      "dragover"
+    );
+
+
+    if(
+      e.dataTransfer.files.length
+    ){
+
+      uploadFile(
+        e.dataTransfer.files[0]
+      );
+
+    }
+
+  }
+);
+
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    if(
+      fileInput.files.length
+    ){
+
+      uploadFile(
+        fileInput.files[0]
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   UPLOAD FILE
+   ========================= */
+
+async function uploadFile(file){
+
+  const originalHTML =
+    uploadZone.innerHTML;
+
+
+  uploadZone.innerHTML =
+    `⏳ جارٍ معالجة: ${file.name}`;
+
+
+  const formData =
+    new FormData();
+
+
+  formData.append(
+    "file",
+    file
+  );
+
+
+  try{
+
+    const res =
+      await fetch(
+        "/api/upload",
+        {
+          method:"POST",
+          body:formData
+        }
+      );
+
+
+    const data =
+      await res.json();
+
+
+    if(!res.ok){
+
+      alert(
+        data.error ||
+        "فشل رفع الملف"
+      );
+
+    }
+    else{
+
+      addMessage(
+        `✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`,
+        "bot"
+      );
+
+    }
+
+  }
+  catch(err){
+
+    alert(
+      "تعذر رفع الملف"
+    );
+
+  }
+  finally{
+
+    uploadZone.innerHTML =
+      originalHTML;
+
+    fileInput.value =
+      "";
+
+    loadDocuments();
+
+  }
+
 }
 
+
+/* =========================
+   LOAD DOCUMENTS
+   ========================= */
+
+async function loadDocuments(){
+
+  try{
+
+    const res =
+      await fetch(
+        "/api/documents"
+      );
+
+
+    const data =
+      await res.json();
+
+
+    docsList.innerHTML =
+      "";
+
+
+    if(
+      !data.documents ||
+      data.documents.length === 0
+    ){
+
+      docsList.innerHTML =
+        '<div class="empty-hint">لا توجد مستندات بعد</div>';
+
+      return;
+
+    }
+
+
+    data.documents.forEach(
+      doc => {
+
+        const div =
+          document.createElement("div");
+
+        div.className =
+          "doc-item";
+
+
+        div.innerHTML =
+          `<span class="doc-name">📄 ${doc.source}</span>
+           <span class="doc-chunks">${doc.chunks}</span>`;
+
+
+        const delBtn =
+          document.createElement("button");
+
+
+        delBtn.className =
+          "del-btn";
+
+        delBtn.textContent =
+          "✕";
+
+        delBtn.title =
+          "حذف";
+
+
+        delBtn.onclick =
+          async () => {
+
+            await fetch(
+              `/api/documents/${doc.doc_id}`,
+              {
+                method:"DELETE"
+              }
+            );
+
+            loadDocuments();
+
+          };
+
+
+        div.appendChild(
+          delBtn
+        );
+
+        docsList.appendChild(
+          div
+        );
+
+      }
+    );
+
+  }
+  catch(err){
+
+    docsList.innerHTML =
+      '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
+
+  }
+
+}
+
+
+/* =========================
+   INITIALIZE
+   ========================= */
+
 loadDocuments();
+
 input.focus();
+
 </script>
+
 </body>
 </html>
