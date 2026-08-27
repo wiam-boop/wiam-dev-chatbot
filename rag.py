@@ -36,7 +36,7 @@ _lock  = threading.Lock()
 
 # ✅ تحميل النموذج مرة واحدة عند استيراد الملف (وليس عند كل طلب)
 print("جاري تحميل نموذج التضمين...")
-_model = SentenceTransformer(EMBED_MODEL_NAME)
+_model = SentenceTransformer("./model")
 print("تم تحميل النموذج بنجاح ✓")
 
 
