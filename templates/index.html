@@ -1,998 +1,2103 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
+
 <title>Wiam Dev ChatBot</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link
+  rel="preconnect"
+  href="https://fonts.googleapis.com"
+>
+
+<link
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin
+>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+>
+
 
 <style>
 
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
 :root{
+
   --bg-main:#1e1e20;
   --bg-sidebar:#161618;
   --bg-elevated:#2a2a2d;
   --bg-input:#2f2f33;
+
   --border:#333336;
+
   --text-primary:#ececec;
   --text-secondary:#9a9aa2;
+
   --accent:#6c5ce7;
   --accent-hover:#7d70eb;
   --accent-soft:rgba(108,92,231,.14);
+
   --danger:#e5584f;
+
   --radius-lg:18px;
   --radius-md:12px;
   --radius-sm:8px;
+
   --font-ui:'Tajawal',sans-serif;
   --font-mono:'IBM Plex Mono',monospace;
+
 }
 
-/* =========================
+
+/* =========================================================
    RESET
-   ========================= */
+   ========================================================= */
 
 *{
+
   box-sizing:border-box;
+
   margin:0;
   padding:0;
+
 }
+
 
 html,
 body{
+
   width:100%;
   height:100%;
-  max-width:100%;
+
 }
+
+
+html{
+
+  overflow:hidden;
+
+}
+
 
 body{
+
   font-family:var(--font-ui);
+
   background:var(--bg-main);
+
   color:var(--text-primary);
+
   display:flex;
+
   overflow:hidden;
+
   min-width:0;
+
 }
 
-/* =========================
+
+/* =========================================================
    SIDEBAR
-   ========================= */
+   ========================================================= */
 
 #sidebar{
+
   width:280px;
   min-width:280px;
+
   background:var(--bg-sidebar);
+
   display:flex;
   flex-direction:column;
+
   height:100vh;
   height:100dvh;
+
   border-left:1px solid var(--border);
-  transition:margin-right .25s ease;
+
+  transition:
+    margin-right .25s ease,
+    transform .25s ease;
+
 }
+
+
+/* Desktop */
 
 #sidebar.collapsed{
+
   margin-right:-280px;
+
 }
+
+
+/* =========================================================
+   SIDEBAR HEADER
+   ========================================================= */
 
 .sidebar-header{
+
   padding:16px;
+
   display:flex;
   flex-direction:column;
+
   gap:10px;
+
 }
+
 
 .brand{
+
   display:flex;
+
   align-items:center;
+
   gap:10px;
+
   padding:0 4px 6px;
+
 }
+
 
 .brand-icon{
+
   width:32px;
   height:32px;
+
   border-radius:9px;
-  background:linear-gradient(135deg,var(--accent),#a29bfe);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent),
+      #a29bfe
+    );
+
   display:flex;
+
   align-items:center;
   justify-content:center;
+
   font-size:16px;
+
   flex-shrink:0;
+
 }
+
 
 .brand-name{
+
   font-weight:900;
+
   font-size:16px;
+
   letter-spacing:.2px;
+
 }
+
+
+/* =========================================================
+   NEW CHAT BUTTON
+   ========================================================= */
 
 .new-chat-btn{
+
   display:flex;
+
   align-items:center;
+
   gap:10px;
+
   background:transparent;
+
   border:1px solid var(--border);
+
   color:var(--text-primary);
+
   padding:11px 14px;
+
   border-radius:var(--radius-md);
+
   font-family:var(--font-ui);
+
   font-size:14px;
+
   font-weight:500;
+
   cursor:pointer;
-  transition:background .15s,border-color .15s;
+
+  transition:
+    background .15s,
+    border-color .15s;
+
   width:100%;
+
 }
+
 
 .new-chat-btn:hover{
+
   background:var(--bg-elevated);
+
   border-color:#444;
+
 }
+
+
+/* =========================================================
+   SIDEBAR SECTION
+   ========================================================= */
 
 .sidebar-section-label{
+
   font-size:11px;
+
   color:var(--text-secondary);
+
   text-transform:uppercase;
+
   letter-spacing:.6px;
+
   padding:14px 16px 6px;
+
   font-weight:700;
+
 }
+
+
+/* =========================================================
+   CONVERSATIONS
+   ========================================================= */
+
+#conversationsList{
+
+  padding:0 12px 8px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+  max-height:240px;
+
+  overflow-y:auto;
+
+  overflow-x:hidden;
+
+  -webkit-overflow-scrolling:touch;
+
+}
+
+
+.conversation-item{
+
+  width:100%;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:8px;
+
+  padding:10px 10px;
+
+  border:1px solid transparent;
+
+  border-radius:9px;
+
+  background:transparent;
+
+  color:var(--text-primary);
+
+  cursor:pointer;
+
+  text-align:right;
+
+  font-family:var(--font-ui);
+
+  font-size:12.5px;
+
+  transition:
+    background .15s,
+    border-color .15s;
+
+  touch-action:manipulation;
+
+}
+
+
+.conversation-item:hover{
+
+  background:var(--bg-elevated);
+
+  border-color:var(--border);
+
+}
+
+
+.conversation-item.active{
+
+  background:var(--accent-soft);
+
+  border-color:rgba(108,92,231,.35);
+
+}
+
+
+.conversation-icon{
+
+  flex-shrink:0;
+
+  font-size:14px;
+
+}
+
+
+.conversation-title{
+
+  flex:1;
+
+  min-width:0;
+
+  overflow:hidden;
+
+  text-overflow:ellipsis;
+
+  white-space:nowrap;
+
+}
+
+
+.conversation-delete{
+
+  flex-shrink:0;
+
+  border:0;
+
+  background:none;
+
+  color:var(--text-secondary);
+
+  padding:4px;
+
+  font-size:13px;
+
+  cursor:pointer;
+
+  border-radius:5px;
+
+}
+
+
+.conversation-delete:hover{
+
+  color:var(--danger);
+
+  background:rgba(229,88,79,.12);
+
+}
+
+
+/* =========================================================
+   DOCUMENTS
+   ========================================================= */
 
 #docsPanelSidebar{
+
   flex:1;
+
   overflow-y:auto;
+
+  overflow-x:hidden;
+
   padding:0 12px 12px;
+
   display:flex;
+
   flex-direction:column;
+
   gap:8px;
+
+  -webkit-overflow-scrolling:touch;
+
 }
+
 
 .upload-zone{
+
   border:1.5px dashed var(--border);
+
   border-radius:var(--radius-md);
+
   padding:16px 10px;
+
   text-align:center;
+
   font-size:12.5px;
+
   color:var(--text-secondary);
+
   cursor:pointer;
-  transition:border-color .15s,color .15s,background .15s;
+
+  transition:
+    border-color .15s,
+    color .15s,
+    background .15s;
+
   line-height:1.6;
+
 }
+
 
 .upload-zone:hover{
+
   border-color:var(--accent);
+
   color:var(--accent);
+
 }
+
 
 .upload-zone.dragover{
+
   border-color:var(--accent);
+
   background:var(--accent-soft);
+
   color:var(--accent);
+
 }
+
 
 #docsList{
+
   display:flex;
+
   flex-direction:column;
+
   gap:6px;
+
 }
+
 
 .doc-item{
+
   display:flex;
+
   justify-content:space-between;
+
   align-items:center;
+
   background:var(--bg-elevated);
+
   border:1px solid var(--border);
+
   padding:9px 10px;
+
   border-radius:var(--radius-sm);
+
   font-size:12.5px;
+
   gap:6px;
+
 }
+
 
 .doc-item .doc-name{
+
   overflow:hidden;
+
   text-overflow:ellipsis;
+
   white-space:nowrap;
+
   display:flex;
+
   align-items:center;
+
   gap:6px;
+
   color:var(--text-primary);
+
 }
+
 
 .doc-item .doc-chunks{
+
   color:var(--text-secondary);
+
   font-size:11px;
+
   flex-shrink:0;
+
 }
+
 
 .doc-item .del-btn{
+
   background:none;
+
   border:none;
+
   color:var(--text-secondary);
+
   cursor:pointer;
+
   font-size:14px;
+
   padding:2px 4px;
+
   border-radius:4px;
+
   flex-shrink:0;
-  transition:color .15s,background .15s;
+
+  transition:
+    color .15s,
+    background .15s;
+
 }
+
 
 .doc-item .del-btn:hover{
+
   color:var(--danger);
+
   background:rgba(229,88,79,.12);
+
 }
+
 
 .empty-hint{
+
   color:var(--text-secondary);
+
   font-size:12.5px;
+
   text-align:center;
+
   padding:10px 4px;
+
 }
+
+
+/* =========================================================
+   SIDEBAR FOOTER
+   ========================================================= */
 
 .sidebar-footer{
+
   padding:12px 16px 16px;
+
   border-top:1px solid var(--border);
+
   font-size:12px;
+
   color:var(--text-secondary);
+
 }
 
-/* =========================
-   MAIN AREA
-   ========================= */
+
+/* =========================================================
+   MAIN
+   ========================================================= */
 
 #main{
+
   flex:1;
+
   display:flex;
+
   flex-direction:column;
+
   height:100vh;
   height:100dvh;
+
   position:relative;
+
   min-width:0;
+
   width:100%;
+
 }
 
-/* =========================
-   TOP BAR
-   ========================= */
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
 
 #topbar{
+
   display:flex;
+
   align-items:center;
+
   gap:12px;
+
   padding:14px 20px;
+
   border-bottom:1px solid var(--border);
+
   flex-shrink:0;
+
 }
+
 
 #toggleSidebarBtn{
+
   background:none;
+
   border:none;
+
   color:var(--text-secondary);
+
   cursor:pointer;
+
   font-size:18px;
+
   padding:6px;
+
   border-radius:6px;
+
   display:flex;
+
   align-items:center;
+
   justify-content:center;
-  transition:background .15s,color .15s;
+
+  transition:
+    background .15s,
+    color .15s;
+
+  -webkit-tap-highlight-color:transparent;
+
 }
+
 
 #toggleSidebarBtn:hover{
+
   background:var(--bg-elevated);
+
   color:var(--text-primary);
+
 }
+
 
 #topbar-title{
+
   font-weight:700;
+
   font-size:15px;
+
   color:var(--text-primary);
+
 }
 
-#topbar-model{
-  font-size:12px;
-  color:var(--text-secondary);
-}
 
-/* =========================
+/* =========================================================
    CHAT
-   ========================= */
+   ========================================================= */
 
 #chat{
+
   flex:1;
+
+  min-height:0;
+
+  width:100%;
+
   overflow-y:auto;
+
   overflow-x:hidden;
+
   padding:24px 0 8px;
-  min-width:0;
+
+  -webkit-overflow-scrolling:touch;
+
+  overscroll-behavior-y:contain;
+
+  touch-action:pan-y;
+
+  scroll-behavior:smooth;
+
 }
+
 
 #chat-inner{
+
   width:100%;
+
   max-width:720px;
+
   margin:0 auto;
+
   padding:0 20px;
+
   display:flex;
+
   flex-direction:column;
+
   gap:22px;
+
   min-width:0;
+
 }
 
-/* =========================
+
+/* =========================================================
    EMPTY STATE
-   ========================= */
+   ========================================================= */
 
 #emptyState{
-  height:100%;
+
+  min-height:100%;
+
   display:flex;
+
   flex-direction:column;
+
   align-items:center;
+
   justify-content:center;
+
   text-align:center;
+
   gap:14px;
+
   color:var(--text-secondary);
+
   padding:40px 20px;
+
 }
+
 
 #emptyState .empty-icon{
+
   width:56px;
   height:56px;
+
   border-radius:16px;
-  background:linear-gradient(135deg,var(--accent),#a29bfe);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent),
+      #a29bfe
+    );
+
   display:flex;
+
   align-items:center;
   justify-content:center;
+
   font-size:26px;
+
 }
+
 
 #emptyState h2{
+
   color:var(--text-primary);
+
   font-size:19px;
+
   font-weight:900;
+
 }
+
 
 #emptyState p{
+
   font-size:13.5px;
+
   max-width:340px;
+
   line-height:1.7;
+
 }
 
-/* =========================
+
+/* =========================================================
    MESSAGES
-   ========================= */
+   ========================================================= */
 
 .msg-row{
+
   display:flex;
+
   gap:12px;
+
   align-items:flex-start;
+
   width:100%;
+
   min-width:0;
+
 }
+
 
 .msg-row.user{
+
   flex-direction:row;
+
 }
+
 
 .avatar{
+
   width:30px;
   height:30px;
+
   border-radius:8px;
+
   display:flex;
+
   align-items:center;
+
   justify-content:center;
+
   font-size:14px;
+
   flex-shrink:0;
+
   margin-top:2px;
+
 }
+
 
 .avatar.bot{
-  background:linear-gradient(135deg,var(--accent),#a29bfe);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent),
+      #a29bfe
+    );
+
 }
+
 
 .avatar.user{
+
   background:var(--bg-elevated);
+
   border:1px solid var(--border);
+
 }
+
 
 .msg-body{
+
   flex:1;
+
   min-width:0;
+
   max-width:100%;
+
 }
+
 
 .msg-name{
+
   font-size:12.5px;
+
   font-weight:700;
+
   color:var(--text-secondary);
+
   margin-bottom:4px;
+
 }
+
 
 .msg-content{
+
   font-size:15px;
+
   line-height:1.85;
+
   color:var(--text-primary);
+
   white-space:pre-wrap;
+
   word-wrap:break-word;
+
   overflow-wrap:anywhere;
+
   max-width:100%;
+
 }
+
 
 .msg-content.error{
+
   color:var(--danger);
+
 }
+
+
+/* =========================================================
+   CODE
+   ========================================================= */
 
 .msg-content pre{
+
   background:#101012;
+
   border:1px solid var(--border);
+
   border-radius:var(--radius-sm);
+
   padding:12px 14px;
+
   overflow-x:auto;
+
   direction:ltr;
+
   text-align:left;
+
   font-family:var(--font-mono);
+
   font-size:13px;
+
   margin:8px 0;
+
   max-width:100%;
+
+  -webkit-overflow-scrolling:touch;
+
+  touch-action:pan-x;
+
 }
+
 
 .msg-content code{
+
   background:#101012;
+
   padding:2px 6px;
+
   border-radius:5px;
+
   font-family:var(--font-mono);
+
   font-size:13px;
+
   direction:ltr;
+
   display:inline-block;
+
   max-width:100%;
+
   overflow-wrap:anywhere;
+
 }
+
 
 .msg-content pre code{
+
   background:none;
+
   padding:0;
+
 }
+
+
+/* =========================================================
+   IMAGES
+   ========================================================= */
 
 .msg-image{
+
   margin-top:10px;
+
   max-width:100%;
+
   border-radius:var(--radius-md);
+
   border:1px solid var(--border);
+
   display:block;
+
   overflow:hidden;
+
   background:var(--bg-elevated);
+
 }
+
 
 .msg-image img{
+
   width:100%;
+
   max-width:420px;
+
   height:auto;
+
   display:block;
+
 }
+
 
 .msg-image .img-loading{
+
   padding:14px;
+
   font-size:12.5px;
+
   color:var(--text-secondary);
+
   text-align:center;
+
 }
+
+
+/* =========================================================
+   SOURCES
+   ========================================================= */
 
 .sources-note{
+
   font-size:12px;
+
   color:var(--text-secondary);
+
   margin-top:8px;
+
   display:flex;
+
   align-items:center;
+
   gap:6px;
+
   overflow-wrap:anywhere;
+
 }
 
-/* =========================
+
+/* =========================================================
    TYPING
-   ========================= */
+   ========================================================= */
 
 .typing-dots{
+
   display:flex;
+
   gap:4px;
+
   padding:4px 0;
+
 }
+
 
 .typing-dots span{
+
   width:6px;
   height:6px;
+
   border-radius:50%;
+
   background:var(--text-secondary);
-  animation:bounce 1.2s infinite ease-in-out;
+
+  animation:
+    bounce 1.2s infinite ease-in-out;
+
 }
+
 
 .typing-dots span:nth-child(2){
+
   animation-delay:.15s;
+
 }
+
 
 .typing-dots span:nth-child(3){
+
   animation-delay:.3s;
+
 }
 
+
 @keyframes bounce{
-  0%,80%,100%{
+
+  0%,
+  80%,
+  100%{
+
     transform:translateY(0);
+
     opacity:.5;
+
   }
 
   40%{
+
     transform:translateY(-4px);
+
     opacity:1;
+
   }
+
 }
 
-/* =========================
-   INPUT AREA
-   ========================= */
+
+/* =========================================================
+   INPUT
+   ========================================================= */
 
 #inputArea{
+
   padding:14px 20px 20px;
+
   flex-shrink:0;
+
   width:100%;
-  min-width:0;
+
 }
+
 
 #inputWrap{
+
   width:100%;
+
   max-width:720px;
+
   margin:0 auto;
+
 }
+
 
 form#chatForm{
+
   display:flex;
+
   align-items:flex-end;
+
   gap:8px;
+
   background:var(--bg-input);
+
   border:1px solid var(--border);
+
   border-radius:var(--radius-lg);
+
   padding:8px 10px 8px 8px;
+
   transition:border-color .15s;
+
   width:100%;
+
   min-width:0;
+
 }
+
 
 form#chatForm:focus-within{
+
   border-color:var(--accent);
+
 }
+
 
 #attachBtn{
+
   background:none;
+
   border:none;
+
   color:var(--text-secondary);
+
   cursor:pointer;
+
   font-size:19px;
+
   padding:8px;
+
   border-radius:var(--radius-sm);
+
   flex-shrink:0;
-  transition:background .15s,color .15s;
+
+  transition:
+    background .15s,
+    color .15s;
+
 }
+
 
 #attachBtn:hover{
+
   background:var(--bg-elevated);
+
   color:var(--text-primary);
+
 }
+
 
 #msgInput{
+
   flex:1;
+
   min-width:0;
+
   width:100%;
+
   background:transparent;
+
   border:none;
+
   outline:none;
+
   color:var(--text-primary);
+
   font-family:var(--font-ui);
+
   font-size:15px;
+
   padding:9px 4px;
+
   resize:none;
+
   max-height:160px;
+
   line-height:1.5;
+
 }
+
 
 #msgInput::placeholder{
+
   color:var(--text-secondary);
+
 }
+
 
 #sendBtn{
+
   background:var(--accent);
+
   color:#fff;
+
   border:none;
+
   width:38px;
   height:38px;
+
   min-width:38px;
+
   border-radius:var(--radius-md);
+
   cursor:pointer;
+
   font-size:16px;
+
   flex-shrink:0;
+
   display:flex;
+
   align-items:center;
+
   justify-content:center;
-  transition:background .15s,opacity .15s;
+
+  transition:
+    background .15s,
+    opacity .15s;
+
 }
+
 
 #sendBtn:hover:not(:disabled){
+
   background:var(--accent-hover);
+
 }
+
 
 #sendBtn:disabled{
+
   opacity:.4;
+
   cursor:not-allowed;
+
 }
+
 
 #inputFootnote{
+
   text-align:center;
+
   font-size:11.5px;
+
   color:var(--text-secondary);
+
   margin-top:10px;
+
 }
+
 
 #fileInput{
+
   display:none;
+
 }
 
-/* =========================
+
+/* =========================================================
+   OVERLAY
+   ========================================================= */
+
+#sidebarOverlay{
+
+  display:none;
+
+}
+
+
+/* =========================================================
    SCROLLBAR
-   ========================= */
+   ========================================================= */
 
 ::-webkit-scrollbar{
+
   width:8px;
+
 }
+
 
 ::-webkit-scrollbar-track{
+
   background:transparent;
+
 }
+
 
 ::-webkit-scrollbar-thumb{
+
   background:#3a3a3e;
+
   border-radius:8px;
+
 }
+
 
 ::-webkit-scrollbar-thumb:hover{
+
   background:#4a4a4e;
+
 }
 
 
-/* ==================================================
-   MOBILE RESPONSIVE
-   ================================================== */
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media (max-width:760px){
 
-  html,
-  body{
+  html{
+
     width:100%;
-    max-width:100%;
+
+    height:100%;
+
     overflow:hidden;
+
   }
+
 
   body{
+
+    width:100%;
+
+    height:100%;
+
     min-width:0;
+
+    overflow:hidden;
+
+    position:fixed;
+
+    inset:0;
+
+    overscroll-behavior:none;
+
   }
 
-  /* =========================
-     SIDEBAR MOBILE
-     ========================= */
 
-  #sidebar{
-    position:fixed;
-    top:0;
-    right:0;
+  /* =====================================================
+     MAIN
+     ===================================================== */
 
-    width:min(280px,82vw);
+  #main{
+
+    width:100%;
+
     min-width:0;
-    max-width:280px;
+
+    max-width:100%;
 
     height:100vh;
+
     height:100dvh;
+
+  }
+
+
+  /* =====================================================
+     SIDEBAR
+     ===================================================== */
+
+  #sidebar{
+
+    position:fixed;
+
+    top:0;
+
+    right:0;
+
+    width:min(285px,84vw);
+
+    min-width:0;
+
+    max-width:300px;
+
+    height:100vh;
+
+    height:100dvh;
+
+    z-index:1001;
+
+    margin:0;
+
+    transform:translateX(100%);
+
+    transition:
+      transform .28s cubic-bezier(.4,0,.2,1);
+
+    box-shadow:
+      -10px 0 35px rgba(0,0,0,.5);
+
+    overflow-y:auto;
+
+    overflow-x:hidden;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:pan-y;
+
+  }
+
+
+  /*
+     مغلق
+  */
+
+  #sidebar.collapsed{
+
+    margin:0;
+
+    transform:translateX(100%);
+
+  }
+
+
+  /*
+     مفتوح
+  */
+
+  #sidebar:not(.collapsed){
+
+    transform:translateX(0);
+
+  }
+
+
+  /* =====================================================
+     OVERLAY
+     ===================================================== */
+
+  #sidebarOverlay{
+
+    display:block;
+
+    position:fixed;
+
+    inset:0;
 
     z-index:1000;
 
-    margin-right:0;
+    background:rgba(0,0,0,.48);
 
-    transform:translateX(100%);
+    opacity:0;
 
-    transition:transform .25s ease;
+    visibility:hidden;
 
-    box-shadow:-8px 0 30px rgba(0,0,0,.45);
+    pointer-events:none;
+
+    transition:
+      opacity .25s ease,
+      visibility .25s ease;
+
+    touch-action:none;
+
   }
 
-  /* القائمة مفتوحة */
-  #sidebar:not(.collapsed){
-    transform:translateX(0);
+
+  #sidebarOverlay.active{
+
+    opacity:1;
+
+    visibility:visible;
+
+    pointer-events:auto;
+
   }
 
-  /* القائمة مغلقة */
-  #sidebar.collapsed{
-    margin-right:0;
-    transform:translateX(100%);
-  }
 
-  /* =========================
-     MAIN
-     ========================= */
-
-  #main{
-    width:100%;
-    min-width:0;
-    max-width:100%;
-  }
-
-  /* =========================
+  /* =====================================================
      TOPBAR
-     ========================= */
+     ===================================================== */
 
   #topbar{
-    padding:12px 14px;
-    min-height:58px;
+
     width:100%;
+
+    min-height:58px;
+
+    padding:
+      10px
+      max(10px, env(safe-area-inset-right))
+      10px
+      max(10px, env(safe-area-inset-left));
+
   }
+
 
   #toggleSidebarBtn{
+
+    width:40px;
+
+    height:40px;
+
+    min-width:40px;
+
+    padding:0;
+
     font-size:20px;
-    padding:7px;
-    flex-shrink:0;
+
+    touch-action:manipulation;
+
   }
+
 
   #topbar-title{
+
     font-size:14px;
+
   }
 
-  /* =========================
+
+  /* =====================================================
      CHAT
-     ========================= */
+     ===================================================== */
 
   #chat{
+
     width:100%;
+
     max-width:100%;
-    padding:18px 0 8px;
+
+    min-width:0;
+
+    min-height:0;
+
+    overflow-y:auto;
+
     overflow-x:hidden;
+
+    padding:18px 0 10px;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:pan-y;
+
+    overscroll-behavior-y:contain;
+
   }
+
 
   #chat-inner{
+
     width:100%;
+
     max-width:720px;
-    padding:0 14px;
-    gap:18px;
+
     min-width:0;
+
+    padding:
+      0
+      max(10px, env(safe-area-inset-right))
+      0
+      max(10px, env(safe-area-inset-left));
+
+    gap:18px;
+
   }
 
-  /* =========================
+
+  /* =====================================================
+     EMPTY
+     ===================================================== */
+
+  #emptyState{
+
+    padding:30px 15px;
+
+  }
+
+
+  #emptyState h2{
+
+    font-size:17px;
+
+  }
+
+
+  #emptyState p{
+
+    font-size:13px;
+
+  }
+
+
+  /* =====================================================
      MESSAGES
-     ========================= */
+     ===================================================== */
 
   .msg-row{
+
     width:100%;
+
     max-width:100%;
+
+    min-width:0;
+
     gap:8px;
+
   }
+
 
   .avatar{
+
     width:28px;
+
     height:28px;
+
     min-width:28px;
+
     font-size:13px;
+
   }
+
 
   .msg-body{
-    min-width:0;
+
     width:100%;
+
+    min-width:0;
+
     max-width:calc(100% - 36px);
+
   }
+
 
   .msg-content{
-    font-size:14px;
-    line-height:1.75;
-    overflow-wrap:anywhere;
-    word-break:break-word;
+
+    width:100%;
+
     max-width:100%;
+
+    font-size:14px;
+
+    line-height:1.75;
+
+    overflow-wrap:anywhere;
+
+    word-break:break-word;
+
   }
+
 
   .msg-content pre{
-    max-width:100%;
+
     width:100%;
+
+    max-width:100%;
+
     overflow-x:auto;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:pan-x;
+
     font-size:12px;
+
     padding:10px;
+
   }
+
 
   .msg-content code{
-    font-size:12px;
+
     max-width:100%;
+
+    font-size:12px;
+
   }
+
 
   .msg-image{
-    max-width:100%;
+
     width:100%;
+
+    max-width:100%;
+
   }
+
 
   .msg-image img{
+
     width:100%;
+
     max-width:100%;
+
     height:auto;
+
   }
 
-  /* =========================
+
+  /* =====================================================
      INPUT
-     ========================= */
+     ===================================================== */
 
   #inputArea{
+
     width:100%;
+
     max-width:100%;
-    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+
+    padding:
+      8px
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+
   }
+
 
   #inputWrap{
+
     width:100%;
+
     max-width:none;
+
   }
+
 
   form#chatForm{
+
     width:100%;
+
     max-width:100%;
+
+    min-width:0;
+
     gap:5px;
+
     padding:6px;
+
     border-radius:15px;
+
   }
+
 
   #attachBtn{
+
     font-size:17px;
+
     padding:7px;
+
+    min-width:32px;
+
   }
+
 
   #msgInput{
+
     min-width:0;
+
     width:100%;
-    font-size:14px;
+
+    font-size:16px;
+
     padding:8px 3px;
+
   }
+
 
   #sendBtn{
-    width:36px;
-    height:36px;
-    min-width:36px;
+
+    width:38px;
+
+    height:38px;
+
+    min-width:38px;
+
     border-radius:10px;
+
   }
 
+
   #inputFootnote{
+
     font-size:10px;
+
     margin-top:7px;
+
   }
+
+
+  /* =====================================================
+     CONVERSATIONS
+     ===================================================== */
+
+  #conversationsList{
+
+    max-height:220px;
+
+    overflow-y:auto;
+
+    -webkit-overflow-scrolling:touch;
+
+    touch-action:pan-y;
+
+  }
+
+
+  .conversation-item{
+
+    min-height:42px;
+
+    padding:10px;
+
+  }
+
 }
 
 
-/* ==================================================
+/* =========================================================
    SMALL PHONES
-   ================================================== */
+   ========================================================= */
 
 @media (max-width:480px){
 
   #sidebar{
-    width:85vw;
+
+    width:86vw;
+
     max-width:300px;
+
   }
 
-  #topbar{
-    padding:10px 12px;
-  }
-
-  #chat{
-    padding-top:14px;
-  }
 
   #chat-inner{
-    padding:0 11px;
-    gap:16px;
+
+    padding-left:10px;
+
+    padding-right:10px;
+
   }
 
-  .msg-row{
-    gap:7px;
-  }
-
-  .avatar{
-    width:27px;
-    height:27px;
-    min-width:27px;
-    border-radius:7px;
-  }
-
-  .msg-name{
-    font-size:11.5px;
-  }
 
   .msg-content{
+
     font-size:13.5px;
-    line-height:1.7;
+
   }
 
-  #inputArea{
-    padding-left:8px;
-    padding-right:8px;
+
+  #topbar{
+
+    padding-left:10px;
+
+    padding-right:10px;
+
   }
 
-  form#chatForm{
-    border-radius:14px;
-  }
-
-  #msgInput{
-    font-size:14px;
-  }
 }
 
 
-/* ==================================================
+/* =========================================================
    VERY SMALL PHONES
-   ================================================== */
+   ========================================================= */
 
 @media (max-width:360px){
 
   #sidebar{
-    width:88vw;
+
+    width:89vw;
+
   }
+
 
   #chat-inner{
-    padding:0 9px;
+
+    padding-left:8px;
+
+    padding-right:8px;
+
   }
 
-  .avatar{
-    width:25px;
-    height:25px;
-    min-width:25px;
-    font-size:12px;
-  }
 
   .msg-content{
+
     font-size:13px;
+
   }
 
-  #attachBtn{
-    padding:6px;
-  }
 
   #sendBtn{
-    width:34px;
-    height:34px;
-    min-width:34px;
+
+    width:36px;
+
+    height:36px;
+
+    min-width:36px;
+
   }
+
 }
 
 </style>
+
 </head>
+
 
 <body>
 
-<!-- =========================
+
+<!-- =====================================================
+     SIDEBAR OVERLAY
+     ===================================================== -->
+
+<div id="sidebarOverlay"></div>
+
+
+<!-- =====================================================
      SIDEBAR
-     ========================= -->
+     ===================================================== -->
 
 <aside id="sidebar">
 
+
   <div class="sidebar-header">
 
+
     <div class="brand">
-      <div class="brand-icon">🤖</div>
-      <div class="brand-name">Wiam Dev ChatBot</div>
+
+      <div class="brand-icon">
+        🤖
+      </div>
+
+      <div class="brand-name">
+        Wiam Dev ChatBot
+      </div>
+
     </div>
 
-    <button class="new-chat-btn" id="resetBtn">
+
+    <button
+      class="new-chat-btn"
+      id="resetBtn"
+    >
+
       <span>＋</span>
-      <span>محادثة جديدة</span>
+
+      <span>
+        محادثة جديدة
+      </span>
+
     </button>
 
   </div>
 
+
+  <!-- ===================================================
+       PREVIOUS CONVERSATIONS
+       =================================================== -->
+
   <div class="sidebar-section-label">
-    قاعدة المعرفة
+
+    المحادثات السابقة
+
   </div>
+
+
+  <div id="conversationsList">
+
+    <div class="empty-hint">
+      لا توجد محادثات سابقة
+    </div>
+
+  </div>
+
+
+  <!-- ===================================================
+       KNOWLEDGE BASE
+       =================================================== -->
+
+  <div class="sidebar-section-label">
+
+    قاعدة المعرفة
+
+  </div>
+
 
   <div id="docsPanelSidebar">
 
-    <div class="upload-zone" id="uploadZone">
-      📎 اسحب ملفاً هنا أو اضغط للاختيار<br>
+
+    <div
+      class="upload-zone"
+      id="uploadZone"
+    >
+
+      📎 اسحب ملفاً هنا أو اضغط للاختيار
+
+      <br>
+
       <span style="opacity:.7">
+
         PDF · Word · صورة · txt
+
       </span>
+
     </div>
+
 
     <input
       type="file"
@@ -1000,79 +2105,111 @@ form#chatForm:focus-within{
       accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.txt,.md"
     />
 
+
     <div id="docsList"></div>
 
+
   </div>
 
+
   <div class="sidebar-footer">
+
     يعمل عبر Groq API — gpt-oss-120b
+
   </div>
+
 
 </aside>
 
 
-<!-- =========================
+<!-- =====================================================
      MAIN
-     ========================= -->
+     ===================================================== -->
 
 <div id="main">
 
-  <!-- TOP BAR -->
+
+  <!-- ===================================================
+       TOP BAR
+       =================================================== -->
 
   <div id="topbar">
 
+
     <button
       id="toggleSidebarBtn"
-      title="إظهار/إخفاء القائمة"
+      title="إظهار القائمة"
+      aria-label="إظهار القائمة"
     >
       ☰
     </button>
 
+
     <div>
+
       <div id="topbar-title">
         المحادثة
       </div>
+
     </div>
+
 
   </div>
 
 
-  <!-- CHAT -->
+  <!-- ===================================================
+       CHAT
+       =================================================== -->
 
   <div id="chat">
 
+
     <div id="chat-inner">
 
+
       <div id="emptyState">
+
 
         <div class="empty-icon">
           🤖
         </div>
 
+
         <h2>
           كيف يمكنني مساعدتك اليوم؟
         </h2>
 
+
         <p>
+
           اسألني أي شيء، أو ارفع مستنداً
           (PDF/Word/صورة) من القائمة الجانبية
           لأجيب بناءً على محتواه.
+
         </p>
+
 
       </div>
 
+
     </div>
+
 
   </div>
 
 
-  <!-- INPUT -->
+  <!-- ===================================================
+       INPUT
+       =================================================== -->
 
   <div id="inputArea">
 
+
     <div id="inputWrap">
 
+
       <form id="chatForm">
+
 
         <button
           type="button"
@@ -1082,11 +2219,13 @@ form#chatForm:focus-within{
           📎
         </button>
 
+
         <textarea
           id="msgInput"
           rows="1"
           placeholder="اكتب رسالتك..."
         ></textarea>
+
 
         <button
           id="sendBtn"
@@ -1096,110 +2235,208 @@ form#chatForm:focus-within{
           ➤
         </button>
 
+
       </form>
 
+
       <div id="inputFootnote">
+
         قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة
+
       </div>
+
 
     </div>
 
+
   </div>
+
 
 </div>
 
 
 <script>
 
-const chatEl = document.getElementById("chat");
-const chatInner = document.getElementById("chat-inner");
-const emptyState = document.getElementById("emptyState");
-const form = document.getElementById("chatForm");
-const input = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
-const resetBtn = document.getElementById("resetBtn");
-const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
-const sidebar = document.getElementById("sidebar");
-const uploadZone = document.getElementById("uploadZone");
-const fileInput = document.getElementById("fileInput");
-const attachBtn = document.getElementById("attachBtn");
-const docsList = document.getElementById("docsList");
+
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+
+const chatEl =
+  document.getElementById("chat");
+
+
+const chatInner =
+  document.getElementById("chat-inner");
+
+
+const form =
+  document.getElementById("chatForm");
+
+
+const input =
+  document.getElementById("msgInput");
+
+
+const sendBtn =
+  document.getElementById("sendBtn");
+
+
+const resetBtn =
+  document.getElementById("resetBtn");
+
+
+const toggleSidebarBtn =
+  document.getElementById("toggleSidebarBtn");
+
+
+const sidebar =
+  document.getElementById("sidebar");
+
+
+const sidebarOverlay =
+  document.getElementById("sidebarOverlay");
+
+
+const uploadZone =
+  document.getElementById("uploadZone");
+
+
+const fileInput =
+  document.getElementById("fileInput");
+
+
+const attachBtn =
+  document.getElementById("attachBtn");
+
+
+const docsList =
+  document.getElementById("docsList");
+
+
+const conversationsList =
+  document.getElementById(
+    "conversationsList"
+  );
+
 
 let hasStarted = false;
 
 
-/* =========================
+/* =========================================================
+   CONVERSATION STATE
+   ========================================================= */
+
+let currentConversation = [];
+
+let currentConversationId =
+  Date.now();
+
+
+let loadingConversation = false;
+
+
+/* =========================================================
    ESCAPE HTML
-   ========================= */
+   ========================================================= */
 
 function escapeHtml(str){
 
-  return str.replace(
+  return String(str).replace(
     /[&<>"']/g,
+
     m => ({
+
       '&':'&amp;',
       '<':'&lt;',
       '>':'&gt;',
       '"':'&quot;',
       "'":'&#39;'
+
     }[m])
+
   );
 
 }
 
 
-/* =========================
+/* =========================================================
    MARKDOWN
-   ========================= */
+   ========================================================= */
 
 function renderMarkdown(text){
 
-  let html = escapeHtml(text);
+  let html =
+    escapeHtml(text);
 
-  html = html.replace(
-    /```([\s\S]*?)```/g,
-    (m, code) =>
-      `<pre><code>${code.trim()}</code></pre>`
-  );
 
-  html = html.replace(
-    /`([^`]+)`/g,
-    '<code>$1</code>'
-  );
+  html =
+    html.replace(
+      /```([\s\S]*?)```/g,
 
-  html = html.replace(
-    /\*\*([^*]+)\*\*/g,
-    '<strong>$1</strong>'
-  );
+      (m, code) =>
+        `<pre><code>${code.trim()}</code></pre>`
 
-  html = html.replace(
-    /\n/g,
-    '<br>'
-  );
+    );
+
+
+  html =
+    html.replace(
+      /`([^`]+)`/g,
+      '<code>$1</code>'
+    );
+
+
+  html =
+    html.replace(
+      /\*\*([^*]+)\*\*/g,
+      '<strong>$1</strong>'
+    );
+
+
+  html =
+    html.replace(
+      /\n/g,
+      '<br>'
+    );
+
 
   return html;
+
 }
 
 
-/* =========================
+/* =========================================================
    START CHAT
-   ========================= */
+   ========================================================= */
 
 function ensureStarted(){
 
   if(!hasStarted){
 
-    emptyState.remove();
+    const empty =
+      document.getElementById(
+        "emptyState"
+      );
+
+
+    if(empty){
+
+      empty.remove();
+
+    }
+
 
     hasStarted = true;
+
   }
 
 }
 
 
-/* =========================
+/* =========================================================
    ADD MESSAGE
-   ========================= */
+   ========================================================= */
 
 function addMessage(
   text,
@@ -1210,17 +2447,26 @@ function addMessage(
 
   ensureStarted();
 
-  const row = document.createElement("div");
+
+  const row =
+    document.createElement(
+      "div"
+    );
+
 
   row.className =
     "msg-row " + sender;
 
 
   const avatar =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   avatar.className =
     "avatar " + sender;
+
 
   avatar.textContent =
     sender === "user"
@@ -1229,17 +2475,24 @@ function addMessage(
 
 
   const body =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   body.className =
     "msg-body";
 
 
   const name =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   name.className =
     "msg-name";
+
 
   name.textContent =
     sender === "user"
@@ -1248,57 +2501,78 @@ function addMessage(
 
 
   const content =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   content.className =
     "msg-content" +
     (isError ? " error" : "");
+
 
   content.innerHTML =
     renderMarkdown(text);
 
 
   body.appendChild(name);
+
   body.appendChild(content);
 
+
+  /* =====================================================
+     IMAGE
+     ===================================================== */
 
   if(imageUrl){
 
     const imgWrap =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
+
 
     imgWrap.className =
       "msg-image";
+
 
     imgWrap.innerHTML =
       '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
 
 
     const img =
-      document.createElement("img");
+      document.createElement(
+        "img"
+      );
+
 
     img.alt =
       "صورة مولّدة";
 
 
-    img.onload = () => {
+    img.onload =
+      () => {
 
-      imgWrap.innerHTML = "";
+        imgWrap.innerHTML =
+          "";
 
-      imgWrap.appendChild(img);
+        imgWrap.appendChild(
+          img
+        );
 
-      chatEl.scrollTop =
-        chatEl.scrollHeight;
+        chatEl.scrollTop =
+          chatEl.scrollHeight;
 
-    };
+      };
 
 
-    img.onerror = () => {
+    img.onerror =
+      () => {
 
-      imgWrap.innerHTML =
-        '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>';
+        imgWrap.innerHTML =
+          '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>';
 
-    };
+      };
 
 
     img.src =
@@ -1315,30 +2589,86 @@ function addMessage(
     }
 
 
-    body.appendChild(imgWrap);
+    body.appendChild(
+      imgWrap
+    );
 
   }
 
 
-  row.appendChild(avatar);
-  row.appendChild(body);
+  row.appendChild(
+    avatar
+  );
 
-  chatInner.appendChild(row);
 
-  chatEl.scrollTop =
-    chatEl.scrollHeight;
+  row.appendChild(
+    body
+  );
+
+
+  chatInner.appendChild(
+    row
+  );
+
+
+  /*
+     لا نسجل الرسائل مرة أخرى
+     أثناء تحميل محادثة محفوظة
+  */
+
+  if(!loadingConversation){
+
+    currentConversation.push({
+
+      text:text,
+
+      sender:sender,
+
+      error:isError,
+
+      imageUrl:
+        imageUrl || null
+
+    });
+
+  }
+
+
+  /*
+     النزول لآخر رسالة
+  */
+
+  requestAnimationFrame(
+    () => {
+
+      chatEl.scrollTo({
+
+        top:
+          chatEl.scrollHeight,
+
+        behavior:
+          "smooth"
+
+      });
+
+    }
+  );
+
 
   return {
+
     row,
+
     content
+
   };
 
 }
 
 
-/* =========================
+/* =========================================================
    SOURCES
-   ========================= */
+   ========================================================= */
 
 function addSourcesNote(
   container,
@@ -1349,21 +2679,31 @@ function addSourcesNote(
     !sources ||
     sources.length === 0
   ){
+
     return;
+
   }
 
 
   const div =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   div.className =
     "sources-note";
+
 
   div.textContent =
     "📎 المصادر: " +
     sources.join("، ");
 
-  container.appendChild(div);
+
+  container.appendChild(
+    div
+  );
+
 
   chatEl.scrollTop =
     chatEl.scrollHeight;
@@ -1371,19 +2711,24 @@ function addSourcesNote(
 }
 
 
-/* =========================
+/* =========================================================
    TYPING
-   ========================= */
+   ========================================================= */
 
 function addTyping(){
 
   ensureStarted();
 
+
   const row =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   row.className =
     "msg-row bot";
+
 
   row.id =
     "typingRow";
@@ -1402,9 +2747,11 @@ function addTyping(){
       </div>
 
       <div class="typing-dots">
+
         <span></span>
         <span></span>
         <span></span>
+
       </div>
 
     </div>
@@ -1412,7 +2759,10 @@ function addTyping(){
   `;
 
 
-  chatInner.appendChild(row);
+  chatInner.appendChild(
+    row
+  );
+
 
   chatEl.scrollTop =
     chatEl.scrollHeight;
@@ -1423,25 +2773,975 @@ function addTyping(){
 function removeTyping(){
 
   const el =
-    document.getElementById("typingRow");
+    document.getElementById(
+      "typingRow"
+    );
+
 
   if(el){
+
     el.remove();
+
   }
 
 }
 
 
-/* =========================
+/* =========================================================
+   SIDEBAR FUNCTIONS
+   ========================================================= */
+
+function openSidebar(){
+
+  sidebar.classList.remove(
+    "collapsed"
+  );
+
+
+  if(window.innerWidth <= 760){
+
+    sidebarOverlay.classList.add(
+      "active"
+    );
+
+    document.body.style.overflow =
+      "hidden";
+
+  }
+
+}
+
+
+function closeSidebar(){
+
+  sidebar.classList.add(
+    "collapsed"
+  );
+
+
+  sidebarOverlay.classList.remove(
+    "active"
+  );
+
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+
+toggleSidebarBtn.addEventListener(
+  "click",
+
+  () => {
+
+    if(
+      sidebar.classList.contains(
+        "collapsed"
+      )
+    ){
+
+      openSidebar();
+
+    }
+    else{
+
+      closeSidebar();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   CLICK OUTSIDE
+   ========================================================= */
+
+sidebarOverlay.addEventListener(
+  "click",
+  closeSidebar
+);
+
+
+/* =========================================================
+   SWIPE SIDEBAR
+   ========================================================= */
+
+let sidebarTouchStartX = 0;
+
+let sidebarTouchStartY = 0;
+
+let sidebarTouchCurrentX = 0;
+
+
+sidebar.addEventListener(
+  "touchstart",
+
+  e => {
+
+    if(
+      window.innerWidth > 760
+    ){
+
+      return;
+
+    }
+
+
+    sidebarTouchStartX =
+      e.touches[0].clientX;
+
+
+    sidebarTouchStartY =
+      e.touches[0].clientY;
+
+
+    sidebarTouchCurrentX =
+      sidebarTouchStartX;
+
+  },
+
+  {
+    passive:true
+  }
+
+);
+
+
+sidebar.addEventListener(
+  "touchmove",
+
+  e => {
+
+    if(
+      window.innerWidth > 760
+    ){
+
+      return;
+
+    }
+
+
+    sidebarTouchCurrentX =
+      e.touches[0].clientX;
+
+  },
+
+  {
+    passive:true
+  }
+
+);
+
+
+sidebar.addEventListener(
+  "touchend",
+
+  () => {
+
+    if(
+      window.innerWidth > 760
+    ){
+
+      return;
+
+    }
+
+
+    const deltaX =
+      sidebarTouchCurrentX -
+      sidebarTouchStartX;
+
+
+    const deltaY =
+      Math.abs(
+        sidebarTouchStartY -
+        eventLastY()
+      );
+
+
+    /*
+       سحب القائمة إلى اليمين = إغلاق
+    */
+
+    if(
+      deltaX > 70 &&
+      deltaY < 100
+    ){
+
+      closeSidebar();
+
+    }
+
+  }
+
+);
+
+
+/*
+   آخر Y للمساعدة في تحديد
+   اتجاه السحب
+*/
+
+let lastTouchY = 0;
+
+
+function eventLastY(){
+
+  return lastTouchY;
+
+}
+
+
+sidebar.addEventListener(
+  "touchmove",
+
+  e => {
+
+    if(e.touches.length){
+
+      lastTouchY =
+        e.touches[0].clientY;
+
+    }
+
+  },
+
+  {
+    passive:true
+  }
+
+);
+
+
+/* =========================================================
+   SWIPE FROM RIGHT EDGE TO OPEN
+   ========================================================= */
+
+let edgeStartX = 0;
+
+let edgeStartY = 0;
+
+
+document.addEventListener(
+  "touchstart",
+
+  e => {
+
+    if(
+      window.innerWidth > 760
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !sidebar.classList.contains(
+        "collapsed"
+      )
+    ){
+
+      return;
+
+    }
+
+
+    const touch =
+      e.touches[0];
+
+
+    /*
+       بداية اللمس يجب أن تكون
+       قريبة من الحافة اليمنى
+    */
+
+    if(
+      touch.clientX >
+      window.innerWidth - 35
+    ){
+
+      edgeStartX =
+        touch.clientX;
+
+      edgeStartY =
+        touch.clientY;
+
+    }
+    else{
+
+      edgeStartX =
+        0;
+
+    }
+
+  },
+
+  {
+    passive:true
+  }
+
+);
+
+
+document.addEventListener(
+  "touchend",
+
+  e => {
+
+    if(
+      window.innerWidth > 760
+    ){
+
+      return;
+
+    }
+
+
+    if(!edgeStartX){
+
+      return;
+
+    }
+
+
+    const touch =
+      e.changedTouches[0];
+
+
+    const deltaX =
+      edgeStartX -
+      touch.clientX;
+
+
+    const deltaY =
+      Math.abs(
+        touch.clientY -
+        edgeStartY
+      );
+
+
+    /*
+       من الحافة اليمنى نحو اليسار
+    */
+
+    if(
+      deltaX > 70 &&
+      deltaY < 100
+    ){
+
+      openSidebar();
+
+    }
+
+
+    edgeStartX =
+      0;
+
+  },
+
+  {
+    passive:true
+  }
+
+);
+
+
+/* =========================================================
+   CONVERSATION STORAGE
+   ========================================================= */
+
+const STORAGE_KEY =
+  "wiam_dev_chat_conversations";
+
+
+function getSavedConversations(){
+
+  try{
+
+    return JSON.parse(
+      localStorage.getItem(
+        STORAGE_KEY
+      )
+    ) || [];
+
+  }
+  catch(error){
+
+    console.error(
+      "Conversation storage error:",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+
+function saveConversations(
+  conversations
+){
+
+  try{
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(
+        conversations
+      )
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      "Could not save conversations:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SAVE CURRENT CONVERSATION
+   ========================================================= */
+
+function saveCurrentConversation(){
+
+  if(
+    currentConversation.length === 0
+  ){
+
+    return;
+
+  }
+
+
+  const conversations =
+    getSavedConversations();
+
+
+  const firstUserMessage =
+    currentConversation.find(
+      message =>
+        message.sender ===
+        "user"
+    );
+
+
+  let title =
+    firstUserMessage
+      ? firstUserMessage.text
+      : "محادثة جديدة";
+
+
+  title =
+    String(title)
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+
+  if(title.length > 40){
+
+    title =
+      title.substring(
+        0,
+        40
+      ) +
+      "...";
+
+  }
+
+
+  const conversation = {
+
+    id:
+      currentConversationId,
+
+    title:
+      title || "محادثة جديدة",
+
+    messages:
+      currentConversation,
+
+    date:
+      new Date().toISOString()
+
+  };
+
+
+  const existingIndex =
+    conversations.findIndex(
+      item =>
+        item.id ===
+        currentConversationId
+    );
+
+
+  if(existingIndex !== -1){
+
+    conversations[
+      existingIndex
+    ] =
+      conversation;
+
+  }
+  else{
+
+    conversations.unshift(
+      conversation
+    );
+
+  }
+
+
+  /*
+     الاحتفاظ بآخر 30 محادثة
+  */
+
+  const limited =
+    conversations.slice(
+      0,
+      30
+    );
+
+
+  saveConversations(
+    limited
+  );
+
+
+  renderConversationList();
+
+}
+
+
+/* =========================================================
+   RENDER CONVERSATIONS
+   ========================================================= */
+
+function renderConversationList(){
+
+  const conversations =
+    getSavedConversations();
+
+
+  conversationsList.innerHTML =
+    "";
+
+
+  if(
+    conversations.length === 0
+  ){
+
+    conversationsList.innerHTML =
+
+      '<div class="empty-hint">لا توجد محادثات سابقة</div>';
+
+    return;
+
+  }
+
+
+  conversations.forEach(
+    conversation => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "conversation-item";
+
+
+      if(
+        conversation.id ===
+        currentConversationId
+      ){
+
+        item.classList.add(
+          "active"
+        );
+
+      }
+
+
+      const icon =
+        document.createElement(
+          "span"
+        );
+
+
+      icon.className =
+        "conversation-icon";
+
+
+      icon.textContent =
+        "💬";
+
+
+      const title =
+        document.createElement(
+          "span"
+        );
+
+
+      title.className =
+        "conversation-title";
+
+
+      title.textContent =
+        conversation.title ||
+        "محادثة";
+
+
+      const deleteBtn =
+        document.createElement(
+          "button"
+        );
+
+
+      deleteBtn.className =
+        "conversation-delete";
+
+
+      deleteBtn.textContent =
+        "✕";
+
+
+      deleteBtn.title =
+        "حذف المحادثة";
+
+
+      deleteBtn.addEventListener(
+        "click",
+
+        e => {
+
+          e.stopPropagation();
+
+
+          deleteConversation(
+            conversation.id
+          );
+
+        }
+
+      );
+
+
+      item.appendChild(
+        icon
+      );
+
+
+      item.appendChild(
+        title
+      );
+
+
+      item.appendChild(
+        deleteBtn
+      );
+
+
+      item.addEventListener(
+        "click",
+
+        () => {
+
+          loadConversation(
+            conversation.id
+          );
+
+        }
+
+      );
+
+
+      conversationsList.appendChild(
+        item
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   LOAD OLD CONVERSATION
+   ========================================================= */
+
+function loadConversation(id){
+
+  const conversations =
+    getSavedConversations();
+
+
+  const conversation =
+    conversations.find(
+      item =>
+        item.id === id
+    );
+
+
+  if(!conversation){
+
+    return;
+
+  }
+
+
+  /*
+     منع addMessage من حفظ
+     الرسائل مرة ثانية
+  */
+
+  loadingConversation =
+    true;
+
+
+  currentConversationId =
+    conversation.id;
+
+
+  currentConversation =
+    Array.isArray(
+      conversation.messages
+    )
+      ? conversation.messages
+      : [];
+
+
+  chatInner.innerHTML =
+    "";
+
+
+  hasStarted =
+    false;
+
+
+  currentConversation.forEach(
+    message => {
+
+      addMessage(
+        message.text,
+        message.sender,
+        message.error || false,
+        message.imageUrl || null
+      );
+
+    }
+  );
+
+
+  loadingConversation =
+    false;
+
+
+  hasStarted =
+    true;
+
+
+  renderConversationList();
+
+
+  closeSidebar();
+
+
+  requestAnimationFrame(
+    () => {
+
+      chatEl.scrollTo({
+
+        top:
+          chatEl.scrollHeight,
+
+        behavior:
+          "smooth"
+
+      });
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   DELETE CONVERSATION
+   ========================================================= */
+
+function deleteConversation(id){
+
+  const conversations =
+    getSavedConversations();
+
+
+  const filtered =
+    conversations.filter(
+      conversation =>
+        conversation.id !== id
+    );
+
+
+  saveConversations(
+    filtered
+  );
+
+
+  /*
+     إذا حذف المستخدم
+     المحادثة الحالية
+  */
+
+  if(
+    id ===
+    currentConversationId
+  ){
+
+    startNewConversation();
+
+  }
+
+
+  renderConversationList();
+
+}
+
+
+/* =========================================================
+   NEW CONVERSATION
+   ========================================================= */
+
+async function startNewConversation(){
+
+  /*
+     حفظ المحادثة السابقة
+  */
+
+  saveCurrentConversation();
+
+
+  /*
+     reset backend
+  */
+
+  try{
+
+    await fetch(
+      "/api/reset",
+      {
+        method:"POST"
+      }
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      "Reset error:",
+      error
+    );
+
+  }
+
+
+  /*
+     تنظيف المحادثة
+  */
+
+  chatInner.innerHTML =
+    "";
+
+
+  const newEmptyState =
+    document.createElement(
+      "div"
+    );
+
+
+  newEmptyState.id =
+    "emptyState";
+
+
+  newEmptyState.innerHTML = `
+
+    <div class="empty-icon">
+      🤖
+    </div>
+
+    <h2>
+      كيف يمكنني مساعدتك اليوم؟
+    </h2>
+
+    <p>
+      اسألني أي شيء، أو ارفع مستنداً
+      (PDF/Word/صورة) من القائمة الجانبية
+      لأجيب بناءً على محتواه.
+    </p>
+
+  `;
+
+
+  chatInner.appendChild(
+    newEmptyState
+  );
+
+
+  hasStarted =
+    false;
+
+
+  currentConversation =
+    [];
+
+
+  currentConversationId =
+    Date.now();
+
+
+  renderConversationList();
+
+
+  closeSidebar();
+
+
+  input.focus();
+
+}
+
+
+resetBtn.addEventListener(
+  "click",
+  startNewConversation
+);
+
+
+/* =========================================================
    TEXTAREA AUTO RESIZE
-   ========================= */
+   ========================================================= */
 
 input.addEventListener(
   "input",
+
   () => {
 
     input.style.height =
       "auto";
+
 
     input.style.height =
       Math.min(
@@ -1450,16 +3750,18 @@ input.addEventListener(
       ) + "px";
 
   }
+
 );
 
 
-/* =========================
+/* =========================================================
    ENTER TO SEND
-   ========================= */
+   ========================================================= */
 
 input.addEventListener(
   "keydown",
-  (e) => {
+
+  e => {
 
     if(
       e.key === "Enter" &&
@@ -1473,26 +3775,36 @@ input.addEventListener(
     }
 
   }
+
 );
 
 
-/* =========================
+/* =========================================================
    SEND MESSAGE
-   ========================= */
+   ========================================================= */
 
 form.addEventListener(
   "submit",
-  async (e) => {
+
+  async e => {
 
     e.preventDefault();
+
 
     const text =
       input.value.trim();
 
+
     if(!text){
+
       return;
+
     }
 
+
+    /*
+       رسالة المستخدم
+    */
 
     addMessage(
       text,
@@ -1500,13 +3812,17 @@ form.addEventListener(
     );
 
 
-    input.value = "";
+    input.value =
+      "";
+
 
     input.style.height =
       "auto";
 
+
     sendBtn.disabled =
       true;
+
 
     addTyping();
 
@@ -1517,21 +3833,26 @@ form.addEventListener(
         await fetch(
           "/api/chat",
           {
+
             method:"POST",
+
             headers:{
               "Content-Type":
                 "application/json"
             },
+
             body:
               JSON.stringify({
                 message:text
               })
+
           }
         );
 
 
       const data =
         await res.json();
+
 
       removeTyping();
 
@@ -1548,9 +3869,7 @@ form.addEventListener(
       }
       else{
 
-        const {
-          content
-        } =
+        const result =
           addMessage(
             data.answer,
             "bot",
@@ -1559,17 +3878,31 @@ form.addEventListener(
             null
           );
 
+
         addSourcesNote(
-          content,
+          result.content,
           data.sources
         );
 
       }
 
+
+      /*
+         حفظ المحادثة بعد الرد
+      */
+
+      saveCurrentConversation();
+
     }
-    catch(err){
+    catch(error){
+
+      console.error(
+        error
+      );
+
 
       removeTyping();
+
 
       addMessage(
         "تعذر الاتصال بالسيرفر",
@@ -1577,87 +3910,28 @@ form.addEventListener(
         true
       );
 
+
+      saveCurrentConversation();
+
     }
     finally{
 
       sendBtn.disabled =
         false;
 
+
       input.focus();
 
     }
 
   }
+
 );
 
 
-/* =========================
-   NEW CHAT
-   ========================= */
-
-resetBtn.addEventListener(
-  "click",
-  async () => {
-
-    await fetch(
-      "/api/reset",
-      {
-        method:"POST"
-      }
-    );
-
-
-    chatInner.innerHTML =
-      "";
-
-
-    chatInner.appendChild(
-      emptyState
-    );
-
-
-    hasStarted =
-      false;
-
-
-    /*
-      على الهاتف نغلق القائمة
-      بعد إنشاء محادثة جديدة
-    */
-
-    if(
-      window.innerWidth <= 760
-    ){
-
-      sidebar.classList.add(
-        "collapsed"
-      );
-
-    }
-
-  }
-);
-
-
-/* =========================
-   SIDEBAR TOGGLE
-   ========================= */
-
-toggleSidebarBtn.addEventListener(
-  "click",
-  () => {
-
-    sidebar.classList.toggle(
-      "collapsed"
-    );
-
-  }
-);
-
-
-/* =========================
-   UPLOAD
-   ========================= */
+/* =========================================================
+   ATTACH FILE
+   ========================================================= */
 
 attachBtn.addEventListener(
   "click",
@@ -1679,9 +3953,14 @@ uploadZone.addEventListener(
 );
 
 
+/* =========================================================
+   DRAG FILE
+   ========================================================= */
+
 uploadZone.addEventListener(
   "dragover",
-  (e) => {
+
+  e => {
 
     e.preventDefault();
 
@@ -1690,11 +3969,13 @@ uploadZone.addEventListener(
     );
 
   }
+
 );
 
 
 uploadZone.addEventListener(
   "dragleave",
+
   () => {
 
     uploadZone.classList.remove(
@@ -1702,12 +3983,14 @@ uploadZone.addEventListener(
     );
 
   }
+
 );
 
 
 uploadZone.addEventListener(
   "drop",
-  (e) => {
+
+  e => {
 
     e.preventDefault();
 
@@ -1727,11 +4010,17 @@ uploadZone.addEventListener(
     }
 
   }
+
 );
 
 
+/* =========================================================
+   FILE SELECT
+   ========================================================= */
+
 fileInput.addEventListener(
   "change",
+
   () => {
 
     if(
@@ -1745,12 +4034,13 @@ fileInput.addEventListener(
     }
 
   }
+
 );
 
 
-/* =========================
+/* =========================================================
    UPLOAD FILE
-   ========================= */
+   ========================================================= */
 
 async function uploadFile(file){
 
@@ -1778,8 +4068,11 @@ async function uploadFile(file){
       await fetch(
         "/api/upload",
         {
+
           method:"POST",
+
           body:formData
+
         }
       );
 
@@ -1803,10 +4096,18 @@ async function uploadFile(file){
         "bot"
       );
 
+
+      saveCurrentConversation();
+
     }
 
   }
-  catch(err){
+  catch(error){
+
+    console.error(
+      error
+    );
+
 
     alert(
       "تعذر رفع الملف"
@@ -1818,8 +4119,10 @@ async function uploadFile(file){
     uploadZone.innerHTML =
       originalHTML;
 
+
     fileInput.value =
       "";
+
 
     loadDocuments();
 
@@ -1828,9 +4131,9 @@ async function uploadFile(file){
 }
 
 
-/* =========================
+/* =========================================================
    LOAD DOCUMENTS
-   ========================= */
+   ========================================================= */
 
 async function loadDocuments(){
 
@@ -1867,26 +4170,47 @@ async function loadDocuments(){
       doc => {
 
         const div =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
+
 
         div.className =
           "doc-item";
 
 
-        div.innerHTML =
-          `<span class="doc-name">📄 ${doc.source}</span>
-           <span class="doc-chunks">${doc.chunks}</span>`;
+        div.innerHTML = `
+
+          <span class="doc-name">
+
+            📄 ${escapeHtml(
+              doc.source
+            )}
+
+          </span>
+
+          <span class="doc-chunks">
+
+            ${doc.chunks}
+
+          </span>
+
+        `;
 
 
         const delBtn =
-          document.createElement("button");
+          document.createElement(
+            "button"
+          );
 
 
         delBtn.className =
           "del-btn";
 
+
         delBtn.textContent =
           "✕";
+
 
         delBtn.title =
           "حذف";
@@ -1895,14 +4219,25 @@ async function loadDocuments(){
         delBtn.onclick =
           async () => {
 
-            await fetch(
-              `/api/documents/${doc.doc_id}`,
-              {
-                method:"DELETE"
-              }
-            );
+            try{
 
-            loadDocuments();
+              await fetch(
+                `/api/documents/${doc.doc_id}`,
+                {
+                  method:"DELETE"
+                }
+              );
+
+              loadDocuments();
+
+            }
+            catch(error){
+
+              console.error(
+                error
+              );
+
+            }
 
           };
 
@@ -1910,6 +4245,7 @@ async function loadDocuments(){
         div.appendChild(
           delBtn
         );
+
 
         docsList.appendChild(
           div
@@ -1919,9 +4255,15 @@ async function loadDocuments(){
     );
 
   }
-  catch(err){
+  catch(error){
+
+    console.error(
+      error
+    );
+
 
     docsList.innerHTML =
+
       '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
 
   }
@@ -1929,15 +4271,125 @@ async function loadDocuments(){
 }
 
 
-/* =========================
+/* =========================================================
+   MOBILE INITIAL STATE
+   ========================================================= */
+
+function initializeSidebar(){
+
+  if(
+    window.innerWidth <= 760
+  ){
+
+    /*
+       مهم جدًا:
+       لا تظهر القائمة عند الدخول
+    */
+
+    sidebar.classList.add(
+      "collapsed"
+    );
+
+
+    sidebarOverlay.classList.remove(
+      "active"
+    );
+
+  }
+  else{
+
+    /*
+       على الكمبيوتر تظهر القائمة
+    */
+
+    sidebar.classList.remove(
+      "collapsed"
+    );
+
+    sidebarOverlay.classList.remove(
+      "active"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+
+window.addEventListener(
+  "resize",
+
+  () => {
+
+    /*
+       عند الانتقال من Desktop
+       إلى Mobile
+    */
+
+    if(
+      window.innerWidth <= 760
+    ){
+
+      /*
+         إذا لم تكن القائمة مفتوحة
+         تبقى مغلقة
+      */
+
+      if(
+        !sidebarOverlay.classList.contains(
+          "active"
+        )
+      ){
+
+        sidebar.classList.add(
+          "collapsed"
+        );
+
+      }
+
+    }
+    else{
+
+      /*
+         على Desktop:
+         القائمة تظهر دائمًا
+      */
+
+      sidebar.classList.remove(
+        "collapsed"
+      );
+
+
+      sidebarOverlay.classList.remove(
+        "active"
+      );
+
+    }
+
+  }
+
+);
+
+
+/* =========================================================
    INITIALIZE
-   ========================= */
+   ========================================================= */
+
+initializeSidebar();
+
+renderConversationList();
 
 loadDocuments();
 
 input.focus();
 
+
 </script>
 
+
 </body>
+
 </html>
