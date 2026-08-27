@@ -497,11 +497,13 @@ function addMessage(text, sender, isError=false, imageUrl=null){
     imgWrap.innerHTML = '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
 
     const img = document.createElement("img");
-    img.src = imageUrl;
     img.alt = "صورة مولّدة";
-    img.loading = "lazy";
     img.onload = () => { imgWrap.innerHTML = ""; imgWrap.appendChild(img); chatEl.scrollTop = chatEl.scrollHeight; };
-    img.onerror = () => { imgWrap.innerHTML = '<div class="img-loading">تعذر تحميل الصورة</div>'; };
+    img.onerror = () => { imgWrap.innerHTML = '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>'; };
+    img.src = imageUrl;
+    if (img.complete && img.naturalWidth > 0){
+      img.onload();
+    }
 
     body.appendChild(imgWrap);
   }
