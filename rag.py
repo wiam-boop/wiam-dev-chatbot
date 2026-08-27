@@ -1,68 +1,75 @@
 """
 محرك RAG (Retrieval-Augmented Generation)
 ==========================================
-يستخرج النص من الملفات (PDF, Word, صور)، يقسّمه لأجزاء صغيرة (chunks)،
-يحوّلها لمتجهات (embeddings) عبر نموذج محلي مجاني، ويخزّنها في FAISS.
-عند كل سؤال، يبحث عن أقرب الأجزاء معنى للسؤال ويعيدها كسياق للنموذج.
+نسخة محسّنة: تستخدم Hugging Face Inference API للـ embeddings
+بدلاً من تحميل النموذج محلياً — توفر ~500MB RAM.
 """
 
 import os
 import json
 import uuid
 import threading
+import requests
 
 import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
 from PIL import Image
 import pytesseract
 
-# ✅ التعديل الأساسي: استخدام /tmp على Railway أو storage محلي عند التطوير
-IS_RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
-
-if IS_RAILWAY:
-    STORAGE_DIR = "/tmp/storage"
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    STORAGE_DIR = os.path.join(BASE_DIR, "storage")
-
+# ✅ مسار التخزين
+IS_RAILWAY  = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+STORAGE_DIR = "/tmp/storage" if IS_RAILWAY else os.path.join(os.path.dirname(os.path.abspath(__file__)), "storage")
 UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
 INDEX_PATH  = os.path.join(STORAGE_DIR, "kb.index")
 META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# نموذج تضمين متعدد اللغات — يعمل محلياً بدون API
-EMBED_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
-EMBED_DIM = 384
+# ✅ Hugging Face API للـ embeddings — مجاني ولا يأكل RAM
+HF_API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+HF_TOKEN   = os.environ.get("HF_TOKEN", "")
+EMBED_DIM  = 384
 
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
 
-_lock  = threading.Lock()
-_model = None
+_lock = threading.Lock()
 
 
-def _get_model():
-    global _model
-    if _model is None:
-        _model = SentenceTransformer(EMBED_MODEL_NAME)
-    return _model
+def _get_embeddings(texts: list) -> np.ndarray:
+    """يحصل على embeddings عبر Hugging Face Inference API"""
+    headers = {}
+    if HF_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_TOKEN}"
+
+    response = requests.post(
+        HF_API_URL,
+        headers=headers,
+        json={"inputs": texts, "options": {"wait_for_model": True}},
+        timeout=60,
+    )
+    response.raise_for_status()
+    embeddings = np.array(response.json(), dtype="float32")
+
+    # تطبيع المتجهات
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    return embeddings / norms
 
 
 # ---------------------------------------------------------------------------
-# استخراج النص من أنواع الملفات المختلفة
+# استخراج النص
 # ---------------------------------------------------------------------------
 
 def extract_text(file_path: str, ext: str) -> str:
     ext = ext.lower()
     if ext == ".pdf":
         return _extract_pdf(file_path)
-    elif ext in (".docx",):
+    elif ext == ".docx":
         return _extract_docx(file_path)
     elif ext in (".png", ".jpg", ".jpeg", ".webp", ".bmp"):
         return _extract_image(file_path)
@@ -75,7 +82,7 @@ def extract_text(file_path: str, ext: str) -> str:
 
 def _extract_pdf(file_path: str) -> str:
     reader = PdfReader(file_path)
-    parts = []
+    parts  = []
     for page in reader.pages:
         text = page.extract_text() or ""
         if text.strip():
@@ -84,7 +91,7 @@ def _extract_pdf(file_path: str) -> str:
 
 
 def _extract_docx(file_path: str) -> str:
-    doc = DocxDocument(file_path)
+    doc   = DocxDocument(file_path)
     parts = [p.text for p in doc.paragraphs if p.text.strip()]
     for table in doc.tables:
         for row in table.rows:
@@ -104,25 +111,23 @@ def _extract_image(file_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# تقسيم النص لأجزاء (chunking)
+# تقسيم النص
 # ---------------------------------------------------------------------------
 
 def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     text = " ".join(text.split())
     if not text:
         return []
-
     chunks = []
-    start = 0
+    start  = 0
     while start < len(text):
-        end = start + chunk_size
-        chunks.append(text[start:end])
+        chunks.append(text[start:start + chunk_size])
         start += chunk_size - overlap
     return chunks
 
 
 # ---------------------------------------------------------------------------
-# قاعدة المعرفة (Knowledge Base)
+# قاعدة المعرفة
 # ---------------------------------------------------------------------------
 
 class KnowledgeBase:
@@ -149,11 +154,7 @@ class KnowledgeBase:
         chunks = chunk_text(text)
         if not chunks:
             return 0
-
-        model      = _get_model()
-        embeddings = model.encode(chunks, normalize_embeddings=True)
-        embeddings = np.array(embeddings, dtype="float32")
-
+        embeddings = _get_embeddings(chunks)
         with _lock:
             self.index.add(embeddings)
             for i, chunk in enumerate(chunks):
@@ -164,19 +165,13 @@ class KnowledgeBase:
                     "text":     chunk,
                 })
             self._save()
-
         return len(chunks)
 
     def search(self, query: str, top_k=TOP_K):
         if self.index.ntotal == 0:
             return []
-
-        model  = _get_model()
-        q_emb  = model.encode([query], normalize_embeddings=True)
-        q_emb  = np.array(q_emb, dtype="float32")
-
+        q_emb           = _get_embeddings([query])
         scores, indices = self.index.search(q_emb, min(top_k, self.index.ntotal))
-
         results = []
         for score, idx in zip(scores[0], indices[0]):
             if idx == -1:
@@ -191,11 +186,7 @@ class KnowledgeBase:
         for item in self.meta:
             doc_id = item["doc_id"]
             if doc_id not in seen:
-                seen[doc_id] = {
-                    "doc_id": doc_id,
-                    "source": item["source"],
-                    "chunks": 0,
-                }
+                seen[doc_id] = {"doc_id": doc_id, "source": item["source"], "chunks": 0}
             seen[doc_id]["chunks"] += 1
         return list(seen.values())
 
@@ -203,17 +194,13 @@ class KnowledgeBase:
         keep_meta = [m for m in self.meta if m["doc_id"] != doc_id]
         if len(keep_meta) == len(self.meta):
             return False
-
-        model = _get_model()
         with _lock:
             if keep_meta:
-                texts      = [m["text"] for m in keep_meta]
-                embeddings = model.encode(texts, normalize_embeddings=True)
+                embeddings = _get_embeddings([m["text"] for m in keep_meta])
                 new_index  = faiss.IndexFlatIP(EMBED_DIM)
-                new_index.add(np.array(embeddings, dtype="float32"))
+                new_index.add(embeddings)
             else:
                 new_index = faiss.IndexFlatIP(EMBED_DIM)
-
             self.index = new_index
             self.meta  = keep_meta
             self._save()
@@ -221,20 +208,16 @@ class KnowledgeBase:
 
 
 def save_uploaded_file(file_storage, original_filename: str):
-    """يحفظ الملف المرفوع ويعيد (doc_id, file_path, ext)"""
     ext       = os.path.splitext(original_filename)[1].lower()
     doc_id    = uuid.uuid4().hex[:12]
-    safe_name = f"{doc_id}{ext}"
-    file_path = os.path.join(UPLOADS_DIR, safe_name)
+    file_path = os.path.join(UPLOADS_DIR, f"{doc_id}{ext}")
     file_storage.save(file_path)
     return doc_id, file_path, ext
 
 
 def build_context_block(results):
-    """يبني نص السياق الذي يُرسل للنموذج من نتائج البحث"""
     if not results:
         return None
-
     lines = ["## معلومات ذات صلة من المستندات المرفوعة:\n"]
     for r in results:
         lines.append(f"[من: {r['source']}]\n{r['text']}\n")
