@@ -1,5 +1,5 @@
 import os
-import re
+import json
 import urllib.parse
 
 from flask import Flask, request, jsonify, session, render_template
@@ -32,7 +32,8 @@ SYSTEM_PROMPT = """أنت مساعد ذكي ومفيد. أجب بدقة ووضو
 - إذا توفرت لك معلومات من مستندات مرفوعة (تظهر بين ## معلومات ذات صلة)، استخدمها كمصدر أساسي للإجابة واذكر من أي ملف أخذت المعلومة.
 - إذا لم تجد المعلومة في المستندات ولا تعرفها، قل ذلك صراحة بدل التخمين.
 - استخدم أمثلة عملية عند الشرح.
-- كن مختصراً إلا إذا طُلب منك التفصيل."""
+- كن مختصراً إلا إذا طُلب منك التفصيل.
+- إذا طلب المستخدم رسم أو توليد أو تصميم صورة (بأي صياغة، حتى غير مباشرة، أو كتأكيد على سؤال سابق)، استخدم أداة generate_image بدل شرح كيفية فعل ذلك يدوياً. لا تشرح للمستخدم كيف يستخدم أدوات خارجية مثل DALL-E أو Stable Diffusion — أنت قادر على توليد الصورة مباشرة عبر الأداة المتاحة لك."""
 
 MAX_HISTORY_MESSAGES = 20
 
@@ -44,21 +45,8 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".bmp",
 #  توليد الصور — Pollinations.ai (مجاني، بلا API key)
 # ─────────────────────────────────────────────────────────
 
-# كلمات مفتاحية تدل على أن المستخدم يطلب "توليد" صورة (وليس مجرد سؤال نصي)
-IMAGE_REQUEST_PATTERNS = [
-    r"ارسم لي", r"ارسم", r"صمم لي", r"صمم صورة", r"أنشئ صورة", r"انشئ صورة",
-    r"ولّد صورة", r"ولد صورة", r"اصنع صورة", r"صورة ل", r"أريد صورة", r"اريد صورة",
-    r"generate.*image", r"draw.*image", r"create.*image", r"image of",
-]
-
-
-def is_image_request(text: str) -> bool:
-    text_l = text.strip().lower()
-    return any(re.search(p, text_l) for p in IMAGE_REQUEST_PATTERNS)
-
-
 def generate_image_url(prompt: str, width: int = 1024, height: int = 1024) -> str:
-    """يبني رابط صورة مباشراً عبر Pollinations.ai — لا حاجة لتحميل الصورة يدوياً."""
+    """يبني رابط صورة مباشرة عبر Pollinations.ai — لا حاجة لتحميل الصورة يدوياً."""
     encoded_prompt = urllib.parse.quote(prompt)
     return (
         f"https://image.pollinations.ai/prompt/{encoded_prompt}"
@@ -66,13 +54,41 @@ def generate_image_url(prompt: str, width: int = 1024, height: int = 1024) -> st
     )
 
 
+# تعريف الأداة التي يمكن لنموذج Groq استدعاءها عند الحاجة لتوليد صورة
+IMAGE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "generate_image",
+        "description": (
+            "يولّد صورة جديدة بناءً على وصف نصي (prompt). استخدم هذه الأداة "
+            "في أي وقت يطلب فيه المستخدم رسم شيء، تصميم صورة، أو توليد صورة، "
+            "حتى لو كان الطلب غير مباشر أو تأكيداً على سؤال سابق حول ما يريد رسمه."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": (
+                        "وصف تفصيلي بالإنجليزية لما يجب أن تُظهره الصورة "
+                        "(الأشخاص، الأشياء، الألوان، النمط الفني، الخلفية...). "
+                        "استنتج هذا الوصف من كامل سياق المحادثة وليس فقط آخر رسالة."
+                    )
+                }
+            },
+            "required": ["prompt"],
+        },
+    },
+}
+
+
 @app.route("/api/generate-image", methods=["POST"])
-def generate_image():
+def generate_image_endpoint():
+    """Endpoint مستقل، مفيد لو أضفت زر "توليد صورة" منفصل في الواجهة لاحقاً."""
     data = request.get_json(silent=True) or {}
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
         return jsonify({"error": "الوصف فارغ، اكتب ما تريد رسمه"}), 400
-
     try:
         image_url = generate_image_url(prompt)
         return jsonify({"status": "ok", "image_url": image_url, "prompt": prompt})
@@ -93,18 +109,6 @@ def chat():
     if not user_message:
         return jsonify({"error": "الرسالة فارغة"}), 400
 
-    # --- إذا كانت الرسالة طلب توليد صورة، لا نمرّ عبر نموذج النص إطلاقاً ---
-    if is_image_request(user_message):
-        try:
-            image_url = generate_image_url(user_message)
-            return jsonify({
-                "answer": "تفضل، هذه الصورة التي طلبتها:",
-                "image_url": image_url,
-                "sources": [],
-            })
-        except Exception as e:
-            return jsonify({"error": f"فشل توليد الصورة: {str(e)}"}), 500
-
     messages = session.get("messages", [{"role": "system", "content": SYSTEM_PROMPT}])
 
     # --- خطوة RAG: ابحث في قاعدة المعرفة عن أجزاء ذات صلة بالسؤال ---
@@ -123,14 +127,47 @@ def chat():
 
     outgoing_messages.append({"role": "user", "content": user_message})
 
+    image_url = None
+
     try:
+        # الاستدعاء الأول: نمنح النموذج إمكانية استخدام أداة توليد الصور
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=outgoing_messages,
+            tools=[IMAGE_TOOL],
+            tool_choice="auto",
             temperature=0.7,
             max_tokens=1024,
         )
-        answer = response.choices[0].message.content
+        choice = response.choices[0]
+        tool_calls = choice.message.tool_calls
+
+        if tool_calls:
+            # النموذج قرر أن المستخدم يريد صورة → نفّذ الأداة فعلياً
+            tool_call = tool_calls[0]
+            args = json.loads(tool_call.function.arguments)
+            image_prompt = args.get("prompt", user_message)
+
+            image_url = generate_image_url(image_prompt)
+
+            # نرسل نتيجة تنفيذ الأداة للنموذج ليكتب رداً طبيعياً حولها
+            outgoing_messages.append(choice.message)
+            outgoing_messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": f"تم توليد الصورة بنجاح بناءً على الوصف: {image_prompt}",
+            })
+
+            final_response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=outgoing_messages,
+                temperature=0.7,
+                max_tokens=300,
+            )
+            answer = final_response.choices[0].message.content
+        else:
+            answer = choice.message.content
+
     except Exception as e:
         session["messages"] = messages
         return jsonify({"error": f"حدث خطأ في الاتصال بالنموذج: {str(e)}"}), 500
@@ -144,7 +181,11 @@ def chat():
 
     session["messages"] = messages
 
-    return jsonify({"answer": answer, "sources": sources_used})
+    result = {"answer": answer, "sources": sources_used}
+    if image_url:
+        result["image_url"] = image_url
+
+    return jsonify(result)
 
 
 @app.route("/api/upload", methods=["POST"])
