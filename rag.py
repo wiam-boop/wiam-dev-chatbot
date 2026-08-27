@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 import faiss
-from openai import OpenAI
+from sentence_transformers import SentenceTransformer
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
@@ -25,16 +25,10 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# ─── Groq client للـ embeddings ───
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-_client = OpenAI(
-    api_key=GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1"
-)
+# ─── نموذج embedding محلي (بلا API خارجي) ───
+_embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
-EMBED_MODEL = "nomic-embed-text-v1_5"
-EMBED_DIM   = 768
-
+EMBED_DIM = 384  # هاد النموذج كيعطي 384 بعد، ماشي 768
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
@@ -42,13 +36,9 @@ _lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings عبر Groq API — مجاني وسريع"""
-    response = _client.embeddings.create(
-        model=EMBED_MODEL,
-        input=texts,
-    )
-    vectors = [item.embedding for item in response.data]
-    embeddings = np.array(vectors, dtype="float32")
+    """يحصل على embeddings محلياً عبر sentence-transformers"""
+    embeddings = _embed_model.encode(texts, convert_to_numpy=True).astype("float32")
+
     # تطبيع
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)
