@@ -1,25 +1,23 @@
 """
-محرك RAG (Retrieval-Augmented Generation)
-==========================================
-نسخة محسّنة: تستخدم Hugging Face Inference API للـ embeddings
-بدلاً من تحميل النموذج محلياً — توفر ~500MB RAM.
+محرك RAG — نسخة محسّنة للذاكرة
+النموذج يُحمَّل مرة واحدة فقط عند بدء التطبيق
 """
 
 import os
 import json
 import uuid
 import threading
-import requests
 
 import numpy as np
 import faiss
+from sentence_transformers import SentenceTransformer
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
 from PIL import Image
 import pytesseract
 
-# ✅ مسار التخزين
+# ─── مسار التخزين ───
 IS_RAILWAY  = os.environ.get("RAILWAY_ENVIRONMENT") is not None
 STORAGE_DIR = "/tmp/storage" if IS_RAILWAY else os.path.join(os.path.dirname(os.path.abspath(__file__)), "storage")
 UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
@@ -28,42 +26,26 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# ✅ Hugging Face API للـ embeddings — مجاني ولا يأكل RAM
-HF_API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-HF_TOKEN   = os.environ.get("HF_TOKEN", "")
-EMBED_DIM  = 384
+EMBED_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+EMBED_DIM        = 384
+CHUNK_SIZE       = 700
+CHUNK_OVERLAP    = 120
+TOP_K            = 4
 
-CHUNK_SIZE    = 700
-CHUNK_OVERLAP = 120
-TOP_K         = 4
+_lock  = threading.Lock()
 
-_lock = threading.Lock()
+# ✅ تحميل النموذج مرة واحدة عند استيراد الملف (وليس عند كل طلب)
+print("جاري تحميل نموذج التضمين...")
+_model = SentenceTransformer(EMBED_MODEL_NAME)
+print("تم تحميل النموذج بنجاح ✓")
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings عبر Hugging Face Inference API"""
-    headers = {}
-    if HF_TOKEN:
-        headers["Authorization"] = f"Bearer {HF_TOKEN}"
-
-    response = requests.post(
-        HF_API_URL,
-        headers=headers,
-        json={"inputs": texts, "options": {"wait_for_model": True}},
-        timeout=60,
-    )
-    response.raise_for_status()
-    embeddings = np.array(response.json(), dtype="float32")
-
-    # تطبيع المتجهات
-    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-    norms = np.where(norms == 0, 1, norms)
-    return embeddings / norms
+    embeddings = _model.encode(texts, normalize_embeddings=True, batch_size=8)
+    return np.array(embeddings, dtype="float32")
 
 
-# ---------------------------------------------------------------------------
-# استخراج النص
-# ---------------------------------------------------------------------------
+# ─── استخراج النص ───
 
 def extract_text(file_path: str, ext: str) -> str:
     ext = ext.lower()
@@ -82,12 +64,7 @@ def extract_text(file_path: str, ext: str) -> str:
 
 def _extract_pdf(file_path: str) -> str:
     reader = PdfReader(file_path)
-    parts  = []
-    for page in reader.pages:
-        text = page.extract_text() or ""
-        if text.strip():
-            parts.append(text)
-    return "\n".join(parts)
+    return "\n".join(p.extract_text() or "" for p in reader.pages if (p.extract_text() or "").strip())
 
 
 def _extract_docx(file_path: str) -> str:
@@ -104,31 +81,25 @@ def _extract_docx(file_path: str) -> str:
 def _extract_image(file_path: str) -> str:
     image = Image.open(file_path)
     try:
-        text = pytesseract.image_to_string(image, lang="ara+eng")
+        return pytesseract.image_to_string(image, lang="ara+eng")
     except Exception:
-        text = pytesseract.image_to_string(image)
-    return text
+        return pytesseract.image_to_string(image)
 
 
-# ---------------------------------------------------------------------------
-# تقسيم النص
-# ---------------------------------------------------------------------------
+# ─── تقسيم النص ───
 
 def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     text = " ".join(text.split())
     if not text:
         return []
-    chunks = []
-    start  = 0
+    chunks, start = [], 0
     while start < len(text):
         chunks.append(text[start:start + chunk_size])
         start += chunk_size - overlap
     return chunks
 
 
-# ---------------------------------------------------------------------------
-# قاعدة المعرفة
-# ---------------------------------------------------------------------------
+# ─── قاعدة المعرفة ───
 
 class KnowledgeBase:
     def __init__(self):
@@ -158,12 +129,7 @@ class KnowledgeBase:
         with _lock:
             self.index.add(embeddings)
             for i, chunk in enumerate(chunks):
-                self.meta.append({
-                    "doc_id":   doc_id,
-                    "source":   source_name,
-                    "chunk_no": i,
-                    "text":     chunk,
-                })
+                self.meta.append({"doc_id": doc_id, "source": source_name, "chunk_no": i, "text": chunk})
             self._save()
         return len(chunks)
 
@@ -196,9 +162,8 @@ class KnowledgeBase:
             return False
         with _lock:
             if keep_meta:
-                embeddings = _get_embeddings([m["text"] for m in keep_meta])
-                new_index  = faiss.IndexFlatIP(EMBED_DIM)
-                new_index.add(embeddings)
+                new_index = faiss.IndexFlatIP(EMBED_DIM)
+                new_index.add(_get_embeddings([m["text"] for m in keep_meta]))
             else:
                 new_index = faiss.IndexFlatIP(EMBED_DIM)
             self.index = new_index
