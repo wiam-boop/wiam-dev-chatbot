@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
+import requests
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
@@ -26,9 +26,10 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # ─── نموذج embedding محلي (بلا API خارجي) ───
-_embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+HF_API_KEY = os.environ.get("HF_API_KEY")
+HF_EMBED_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-EMBED_DIM = 384  # هاد النموذج كيعطي 384 بعد، ماشي 768
+EMBED_DIM = 384
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
@@ -36,14 +37,19 @@ _lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings محلياً عبر sentence-transformers"""
-    embeddings = _embed_model.encode(texts, convert_to_numpy=True).astype("float32")
+    """يحصل على embeddings عبر HuggingFace Inference API"""
+    response = requests.post(
+        HF_EMBED_URL,
+        headers={"Authorization": f"Bearer {HF_API_KEY}"},
+        json={"inputs": texts, "options": {"wait_for_model": True}},
+        timeout=60,
+    )
+    response.raise_for_status()
+    embeddings = np.array(response.json(), dtype="float32")
 
-    # تطبيع
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)
     return embeddings / norms
-
 
 # ─── استخراج النص ───
 

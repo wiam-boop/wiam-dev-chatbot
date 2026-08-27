@@ -7,5 +7,5 @@ pillow
 pytesseract
 faiss-cpu
 numpy
-sentence-transformers
+requests
 python-dotenv
