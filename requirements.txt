@@ -10,3 +10,4 @@ numpy
 requests
 python-dotenv
 huggingface_hub
+groq
