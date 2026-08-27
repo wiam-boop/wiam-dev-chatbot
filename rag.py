@@ -1,6 +1,5 @@
 """
-محرك RAG — نسخة محسّنة للذاكرة
-النموذج يُحمَّل مرة واحدة فقط عند بدء التطبيق
+محرك RAG — يستخدم Groq للـ embeddings (بدون نماذج محلية = بدون مشاكل ذاكرة)
 """
 
 import os
@@ -10,7 +9,7 @@ import threading
 
 import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
+from openai import OpenAI
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
@@ -26,23 +25,34 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-EMBED_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
-EMBED_DIM        = 384
-CHUNK_SIZE       = 700
-CHUNK_OVERLAP    = 120
-TOP_K            = 4
+# ─── Groq client للـ embeddings ───
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+_client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1"
+)
 
-_lock  = threading.Lock()
+EMBED_MODEL = "nomic-embed-text-v1_5"
+EMBED_DIM   = 768
 
-# ✅ تحميل النموذج مرة واحدة عند استيراد الملف (وليس عند كل طلب)
-print("جاري تحميل نموذج التضمين...")
-_model = SentenceTransformer(EMBED_MODEL_NAME)
-print("تم تحميل النموذج بنجاح ✓")
+CHUNK_SIZE    = 700
+CHUNK_OVERLAP = 120
+TOP_K         = 4
+_lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    embeddings = _model.encode(texts, normalize_embeddings=True, batch_size=8)
-    return np.array(embeddings, dtype="float32")
+    """يحصل على embeddings عبر Groq API — مجاني وسريع"""
+    response = _client.embeddings.create(
+        model=EMBED_MODEL,
+        input=texts,
+    )
+    vectors = [item.embedding for item in response.data]
+    embeddings = np.array(vectors, dtype="float32")
+    # تطبيع
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    return embeddings / norms
 
 
 # ─── استخراج النص ───
@@ -64,7 +74,10 @@ def extract_text(file_path: str, ext: str) -> str:
 
 def _extract_pdf(file_path: str) -> str:
     reader = PdfReader(file_path)
-    return "\n".join(p.extract_text() or "" for p in reader.pages if (p.extract_text() or "").strip())
+    return "\n".join(
+        (p.extract_text() or "") for p in reader.pages
+        if (p.extract_text() or "").strip()
+    )
 
 
 def _extract_docx(file_path: str) -> str:
@@ -129,7 +142,10 @@ class KnowledgeBase:
         with _lock:
             self.index.add(embeddings)
             for i, chunk in enumerate(chunks):
-                self.meta.append({"doc_id": doc_id, "source": source_name, "chunk_no": i, "text": chunk})
+                self.meta.append({
+                    "doc_id": doc_id, "source": source_name,
+                    "chunk_no": i, "text": chunk,
+                })
             self._save()
         return len(chunks)
 
