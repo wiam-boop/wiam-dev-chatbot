@@ -1,4 +1,7 @@
 import os
+import re
+import urllib.parse
+
 from flask import Flask, request, jsonify, session, render_template
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -37,6 +40,45 @@ kb = rag.KnowledgeBase()
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".txt", ".md"}
 
+# ─────────────────────────────────────────────────────────
+#  توليد الصور — Pollinations.ai (مجاني، بلا API key)
+# ─────────────────────────────────────────────────────────
+
+# كلمات مفتاحية تدل على أن المستخدم يطلب "توليد" صورة (وليس مجرد سؤال نصي)
+IMAGE_REQUEST_PATTERNS = [
+    r"ارسم لي", r"ارسم", r"صمم لي", r"صمم صورة", r"أنشئ صورة", r"انشئ صورة",
+    r"ولّد صورة", r"ولد صورة", r"اصنع صورة", r"صورة ل", r"أريد صورة", r"اريد صورة",
+    r"generate.*image", r"draw.*image", r"create.*image", r"image of",
+]
+
+
+def is_image_request(text: str) -> bool:
+    text_l = text.strip().lower()
+    return any(re.search(p, text_l) for p in IMAGE_REQUEST_PATTERNS)
+
+
+def generate_image_url(prompt: str, width: int = 1024, height: int = 1024) -> str:
+    """يبني رابط صورة مباشراً عبر Pollinations.ai — لا حاجة لتحميل الصورة يدوياً."""
+    encoded_prompt = urllib.parse.quote(prompt)
+    return (
+        f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+        f"?width={width}&height={height}&nologo=true"
+    )
+
+
+@app.route("/api/generate-image", methods=["POST"])
+def generate_image():
+    data = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"error": "الوصف فارغ، اكتب ما تريد رسمه"}), 400
+
+    try:
+        image_url = generate_image_url(prompt)
+        return jsonify({"status": "ok", "image_url": image_url, "prompt": prompt})
+    except Exception as e:
+        return jsonify({"error": f"فشل توليد الصورة: {str(e)}"}), 500
+
 
 @app.route("/")
 def index():
@@ -48,9 +90,20 @@ def index():
 def chat():
     data = request.get_json(silent=True) or {}
     user_message = (data.get("message") or "").strip()
-
     if not user_message:
         return jsonify({"error": "الرسالة فارغة"}), 400
+
+    # --- إذا كانت الرسالة طلب توليد صورة، لا نمرّ عبر نموذج النص إطلاقاً ---
+    if is_image_request(user_message):
+        try:
+            image_url = generate_image_url(user_message)
+            return jsonify({
+                "answer": "تفضل، هذه الصورة التي طلبتها:",
+                "image_url": image_url,
+                "sources": [],
+            })
+        except Exception as e:
+            return jsonify({"error": f"فشل توليد الصورة: {str(e)}"}), 500
 
     messages = session.get("messages", [{"role": "system", "content": SYSTEM_PROMPT}])
 
@@ -90,6 +143,7 @@ def chat():
         messages = [messages[0]] + messages[-(MAX_HISTORY_MESSAGES - 1):]
 
     session["messages"] = messages
+
     return jsonify({"answer": answer, "sources": sources_used})
 
 
