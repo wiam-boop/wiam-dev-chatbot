@@ -1,7 +1,7 @@
 """
-محرك RAG — يستخدم Groq للـ embeddings (بدون نماذج محلية = بدون مشاكل ذاكرة)
+محرك RAG — يستخدم HuggingFace للـ embeddings و Groq (Qwen Vision) لفهم الصور
 """
-
+import base64
 import os
 import json
 import uuid
@@ -10,6 +10,7 @@ import threading
 import numpy as np
 import faiss
 from huggingface_hub import InferenceClient
+from groq import Groq
 
 from pypdf import PdfReader
 from docx import Document as DocxDocument
@@ -29,8 +30,13 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 HF_API_KEY = os.environ.get("HF_API_KEY")
 _hf_client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
 EMBED_DIM = 384
+
+# ─── عميل Groq (مخصص فقط لفهم الصور عبر نموذج Vision) ───
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+_groq_client = Groq(api_key=GROQ_API_KEY)
+VISION_MODEL = "qwen/qwen3.6-27b"   # نموذج Groq متعدد الوسائط (نص + صورة) — متاح في الخطة المجانية
+
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
@@ -86,11 +92,80 @@ def _extract_docx(file_path: str) -> str:
 
 
 def _extract_image(file_path: str) -> str:
+    """
+    يحاول أولاً قراءة أي نص مكتوب داخل الصورة عبر OCR.
+    إذا لم يجد نصاً كافياً (صورة بدون كتابة: منتج، مكان، رسم، صورة شخص...)
+    يستخدم نموذج رؤية (Vision) عبر Groq لوصف محتوى الصورة نصياً،
+    ليصبح هذا الوصف قابلاً للفهرسة والبحث ضمن قاعدة المعرفة.
+    """
     image = Image.open(file_path)
+
+    # الخطوة 1: محاولة OCR أولاً (أسرع وأرخص، ومناسب للمستندات الممسوحة)
     try:
-        return pytesseract.image_to_string(image, lang="ara+eng")
+        ocr_text = pytesseract.image_to_string(image, lang="ara+eng")
     except Exception:
-        return pytesseract.image_to_string(image)
+        try:
+            ocr_text = pytesseract.image_to_string(image)
+        except Exception:
+            ocr_text = ""
+
+    ocr_text = ocr_text.strip()
+
+    # لو استخرجنا نصاً معقولاً (أكثر من 20 حرف مثلاً) نكتفي به
+    if len(ocr_text) > 20:
+        return ocr_text
+
+    # الخطوة 2: لا يوجد نص كافٍ → استخدم نموذج الرؤية لوصف الصورة
+    vision_description = _describe_image_with_vision(file_path)
+
+    # ندمج الاثنين احتياطاً (في حال وجد OCR كلمات قليلة مفيدة)
+    combined = "\n".join(filter(None, [ocr_text, vision_description]))
+    return combined.strip()
+
+
+def _describe_image_with_vision(file_path: str) -> str:
+    """يستخدم نموذج رؤية عبر Groq API لوصف محتوى الصورة نصياً بالتفصيل."""
+    if not GROQ_API_KEY:
+        return "[لم يتم ضبط GROQ_API_KEY، تعذر تحليل الصورة]"
+
+    try:
+        with open(file_path, "rb") as f:
+            b64_image = base64.b64encode(f.read()).decode("utf-8")
+
+        ext = os.path.splitext(file_path)[1].lower().replace(".", "")
+        mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+
+        completion = _groq_client.chat.completions.create(
+            model=VISION_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "صف هذه الصورة بالتفصيل باللغة العربية: "
+                                "ما الذي تظهره؟ الأشخاص، الأشياء، النصوص إن وجدت، "
+                                "الألوان، السياق العام. اجعل الوصف غنياً بالمعلومات "
+                                "بحيث يمكن الإجابة على أسئلة عن محتوى الصورة اعتماداً عليه فقط."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/{mime};base64,{b64_image}"
+                            },
+                        },
+                    ],
+                }
+            ],
+            temperature=0.3,
+            max_completion_tokens=800,
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        # في حال فشل الاتصال بنموذج الرؤية، لا نكسر الرفع بالكامل
+        return f"[تعذر توليد وصف للصورة تلقائياً: {e}]"
 
 
 # ─── تقسيم النص ───
