@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import urllib.parse
 
@@ -33,7 +34,8 @@ SYSTEM_PROMPT = """أنت مساعد ذكي ومفيد. أجب بدقة ووضو
 - إذا لم تجد المعلومة في المستندات ولا تعرفها، قل ذلك صراحة بدل التخمين.
 - استخدم أمثلة عملية عند الشرح.
 - كن مختصراً إلا إذا طُلب منك التفصيل.
-- إذا طلب المستخدم رسم أو توليد أو تصميم صورة (بأي صياغة، حتى غير مباشرة، أو كتأكيد على سؤال سابق)، استخدم أداة generate_image بدل شرح كيفية فعل ذلك يدوياً. لا تشرح للمستخدم كيف يستخدم أدوات خارجية مثل DALL-E أو Stable Diffusion — أنت قادر على توليد الصورة مباشرة عبر الأداة المتاحة لك."""
+- إذا طلب المستخدم رسم أو توليد أو تصميم صورة، يجب عليك استدعاء أداة generate_image فعلياً.
+- ممنوع منعاً باتاً أن تكتب بنفسك صياغة Markdown لصورة مثل ![وصف](رابط) أو أي رابط ملف وهمي مثل /mnt/data/... — أنت لا تملك القدرة على إنشاء ملفات أو صور مباشرة بالكتابة، القدرة الوحيدة لديك هي استدعاء أداة generate_image. إذا لم تستدعِ الأداة، فلن تكون هناك صورة حقيقية إطلاقاً."""
 
 MAX_HISTORY_MESSAGES = 20
 
@@ -54,15 +56,33 @@ def generate_image_url(prompt: str, width: int = 1024, height: int = 1024) -> st
     )
 
 
+# يكتشف إن كان النموذج قد "اختلق" صياغة صورة وهمية بدل استدعاء الأداة فعلياً
+FAKE_IMAGE_MARKDOWN_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+
+def extract_fake_image_prompt(answer_text: str, fallback_prompt: str) -> str | None:
+    """
+    إذا كتب النموذج ![وصف](رابط) لكن الرابط ليس صورة حقيقية من Pollinations،
+    نعتبر هذا اختلاقاً ونرجع نصاً مناسباً لتوليد صورة حقيقية بدلاً منه.
+    """
+    match = FAKE_IMAGE_MARKDOWN_PATTERN.search(answer_text)
+    if not match:
+        return None
+    url = match.group(1)
+    if "image.pollinations.ai" in url:
+        return None  # رابط حقيقي بالفعل، لا حاجة للتصحيح
+    return fallback_prompt
+
+
 # تعريف الأداة التي يمكن لنموذج Groq استدعاءها عند الحاجة لتوليد صورة
 IMAGE_TOOL = {
     "type": "function",
     "function": {
         "name": "generate_image",
         "description": (
-            "يولّد صورة جديدة بناءً على وصف نصي (prompt). استخدم هذه الأداة "
-            "في أي وقت يطلب فيه المستخدم رسم شيء، تصميم صورة، أو توليد صورة، "
-            "حتى لو كان الطلب غير مباشر أو تأكيداً على سؤال سابق حول ما يريد رسمه."
+            "يولّد صورة حقيقية بناءً على وصف نصي (prompt) ويرجع رابطها الفعلي. "
+            "هذه هي الطريقة الوحيدة لإنشاء صورة حقيقية — لا يوجد أي طريقة أخرى. "
+            "استخدمها في أي وقت يطلب فيه المستخدم رسم شيء أو تصميم أو توليد صورة."
         ),
         "parameters": {
             "type": "object",
@@ -80,6 +100,62 @@ IMAGE_TOOL = {
         },
     },
 }
+
+
+def call_model_with_image_tool(outgoing_messages):
+    """
+    يستدعي النموذج مع أداة توليد الصور، وإذا لم يستدعِ الأداة لكن اختلق
+    صياغة صورة وهمية، يصحح ذلك تلقائياً بتوليد صورة حقيقية.
+    يرجع (answer_text, image_url أو None)
+    """
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=outgoing_messages,
+        tools=[IMAGE_TOOL],
+        tool_choice="auto",
+        temperature=0.7,
+        max_tokens=1024,
+    )
+    choice = response.choices[0]
+    tool_calls = choice.message.tool_calls
+
+    # الحالة 1: النموذج استدعى الأداة فعلياً (السيناريو الصحيح)
+    if tool_calls:
+        tool_call = tool_calls[0]
+        args = json.loads(tool_call.function.arguments)
+        image_prompt = args.get("prompt") or outgoing_messages[-1]["content"]
+
+        image_url = generate_image_url(image_prompt)
+
+        outgoing_messages.append(choice.message)
+        outgoing_messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": f"تم توليد الصورة بنجاح بناءً على الوصف: {image_prompt}",
+        })
+
+        final_response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=outgoing_messages,
+            temperature=0.7,
+            max_tokens=300,
+        )
+        answer = final_response.choices[0].message.content
+        return answer, image_url
+
+    # الحالة 2: لم يستدعِ الأداة — تحقق هل اختلق صورة وهمية
+    answer = choice.message.content or ""
+    user_last_message = outgoing_messages[-1]["content"]
+    fake_prompt = extract_fake_image_prompt(answer, user_last_message)
+
+    if fake_prompt:
+        # نصحح الاختلاق: نولّد صورة حقيقية ونستبدل الرد
+        image_url = generate_image_url(fake_prompt)
+        answer = "تفضل، هذه الصورة التي طلبتها:"
+        return answer, image_url
+
+    # الحالة 3: رد نصي عادي، لا علاقة له بالصور
+    return answer, None
 
 
 @app.route("/api/generate-image", methods=["POST"])
@@ -127,47 +203,8 @@ def chat():
 
     outgoing_messages.append({"role": "user", "content": user_message})
 
-    image_url = None
-
     try:
-        # الاستدعاء الأول: نمنح النموذج إمكانية استخدام أداة توليد الصور
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=outgoing_messages,
-            tools=[IMAGE_TOOL],
-            tool_choice="auto",
-            temperature=0.7,
-            max_tokens=1024,
-        )
-        choice = response.choices[0]
-        tool_calls = choice.message.tool_calls
-
-        if tool_calls:
-            # النموذج قرر أن المستخدم يريد صورة → نفّذ الأداة فعلياً
-            tool_call = tool_calls[0]
-            args = json.loads(tool_call.function.arguments)
-            image_prompt = args.get("prompt", user_message)
-
-            image_url = generate_image_url(image_prompt)
-
-            # نرسل نتيجة تنفيذ الأداة للنموذج ليكتب رداً طبيعياً حولها
-            outgoing_messages.append(choice.message)
-            outgoing_messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": f"تم توليد الصورة بنجاح بناءً على الوصف: {image_prompt}",
-            })
-
-            final_response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=outgoing_messages,
-                temperature=0.7,
-                max_tokens=300,
-            )
-            answer = final_response.choices[0].message.content
-        else:
-            answer = choice.message.content
-
+        answer, image_url = call_model_with_image_tool(outgoing_messages)
     except Exception as e:
         session["messages"] = messages
         return jsonify({"error": f"حدث خطأ في الاتصال بالنموذج: {str(e)}"}), 500
