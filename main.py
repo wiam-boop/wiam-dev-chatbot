@@ -104,7 +104,8 @@ client = OpenAI(
 )
 
 
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.7-flash").strip() or "gemini-3.7-flash"
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
@@ -492,6 +493,25 @@ def normalize_text(text: str) -> str:
     return text.strip()
 
 
+def is_greeting(message: str) -> bool:
+    text = normalize_text(message)
+    greetings = {
+        "hi", "hello", "hey", "hii", "helo", "bonjour",
+        "مرحبا", "مرحبا بك", "اهلا", "اهلا بك", "أهلا",
+        "السلام عليكم", "سلام", "مرحباً", "مراحب"
+    }
+    return text in greetings
+
+
+def greeting_answer(message: str) -> str:
+    text = normalize_text(message)
+    if text in {"hi", "hello", "hey", "hii", "helo"}:
+        return "Hi! 👋 How can I help you?"
+    if text == "bonjour":
+        return "Bonjour ! 👋 Comment puis-je vous aider ?"
+    return "مرحبًا! 👋 كيف يمكنني مساعدتك؟"
+
+
 # =========================================================
 # IDENTITY QUESTION DETECTION
 # =========================================================
@@ -788,29 +808,6 @@ def is_model_question(message: str) -> bool:
 
 
 # =========================================================
-# SIMPLE / GREETING DETECTION
-# =========================================================
-
-def is_simple_greeting(message: str) -> bool:
-    text = normalize_text(message)
-    greetings = {
-        "hi", "hello", "hey", "hey there", "hiya",
-        "مرحبا", "مرحباً", "اهلا", "اهلا وسهلا", "أهلا",
-        "السلام عليكم", "سلام", "هاي", "هلا", "هيلو",
-        "مرهيا", "صباح الخير", "مساء الخير"
-    }
-    return text in {_normalize_for_greeting(x) for x in greetings}
-
-
-def _normalize_for_greeting(text: str) -> str:
-    text = str(text or "").lower().strip()
-    text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
-    text = re.sub(r"[ًٌٍَُِّْـ]", "", text)
-    text = re.sub(r"[؟?!.,،؛:;\-_]+", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-# =========================================================
 # IMAGE REQUEST DETECTION
 # =========================================================
 
@@ -1078,148 +1075,79 @@ def search_web_tavily(query, max_results=5):
 # CALL MODEL WITH RETRY
 # =========================================================
 
-def call_model_with_image_tool(
-    outgoing_messages,
-    use_image_tool=False
-):
+def _call_gemini_once(outgoing_messages, model_name, allow_image_tool=False):
+    kwargs = {
+        "model": model_name,
+        "messages": outgoing_messages,
+        "temperature": 0.7,
+        "max_tokens": 768,
+    }
+    if allow_image_tool:
+        kwargs["tools"] = [IMAGE_TOOL]
+        kwargs["tool_choice"] = "auto"
+
+    response = client.chat.completions.create(**kwargs)
+    choice = response.choices[0]
+
+    tool_calls = getattr(choice.message, "tool_calls", None)
+    if tool_calls:
+        tool_call = tool_calls[0]
+        args = json.loads(tool_call.function.arguments or "{}")
+        image_prompt = args.get("prompt") or outgoing_messages[-1]["content"]
+        return "تفضل، هذه الصورة التي طلبتها 🎨", generate_image_url(image_prompt)
+
+    raw_answer = choice.message.content or ""
+    user_last_message = outgoing_messages[-1]["content"]
+    fake_prompt = extract_fake_image_prompt(raw_answer, user_last_message)
+    if fake_prompt:
+        return "تفضل، هذه الصورة التي طلبتها 🎨", generate_image_url(fake_prompt)
+    return strip_fake_image_markdown(raw_answer) or raw_answer, None
+
+
+def is_503_error(error) -> bool:
+    text = str(error).lower()
+    return "503" in text or "service unavailable" in text or "unavailable" in text or "high demand" in text
+
+
+def call_gemini_with_fallback(outgoing_messages, allow_image_tool=False):
+    """يحاول Gemini الأساسي ثم نموذج Gemini احتياطي عند 503/الضغط."""
+    models = [MODEL_NAME]
+    if GEMINI_FALLBACK_MODEL and GEMINI_FALLBACK_MODEL != MODEL_NAME:
+        models.append(GEMINI_FALLBACK_MODEL)
 
     last_error = None
-
-    for attempt in range(
-        MAX_RETRIES + 1
-    ):
-
-        try:
-
-            request_kwargs = {
-                "model": MODEL_NAME,
-                "messages": outgoing_messages,
-                "temperature": 0.7,
-                "max_tokens": 768
-            }
-
-            # لا نرسل أدوات Function Calling في الأسئلة العادية؛
-            # هذا يجعل الطلبات النصية أخف وأكثر استقراراً.
-            if use_image_tool:
-                request_kwargs["tools"] = [IMAGE_TOOL]
-                request_kwargs["tool_choice"] = "auto"
-
-            response = client.chat.completions.create(**request_kwargs)
-
-            choice = response.choices[0]
-
-            tool_calls = (
-                choice.message.tool_calls
-            )
-
-            # =================================================
-            # IMAGE TOOL
-            # =================================================
-
-            if tool_calls:
-
-                tool_call = tool_calls[0]
-
-                args = json.loads(
-                    tool_call.function.arguments
+    for index, model_name in enumerate(models):
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                answer, image_url = _call_gemini_once(
+                    outgoing_messages, model_name, allow_image_tool=allow_image_tool
                 )
-
-                image_prompt = (
-                    args.get("prompt")
-                    or outgoing_messages[-1]["content"]
-                )
-
-                image_url = generate_image_url(
-                    image_prompt
-                )
-
-                answer = (
-                    "تفضل، هذه الصورة التي طلبتها 🎨"
-                )
-
-                return answer, image_url
-
-            # =================================================
-            # NORMAL ANSWER
-            # =================================================
-
-            raw_answer = (
-                choice.message.content
-                or ""
-            )
-
-            user_last_message = (
-                outgoing_messages[-1]["content"]
-            )
-
-            fake_prompt = (
-                extract_fake_image_prompt(
-                    raw_answer,
-                    user_last_message
-                )
-            )
-
-            if fake_prompt:
-
-                image_url = generate_image_url(
-                    fake_prompt
-                )
-
-                answer = (
-                    "تفضل، هذه الصورة التي طلبتها 🎨"
-                )
-
-                return answer, image_url
-
-            clean_answer = (
-                strip_fake_image_markdown(
-                    raw_answer
-                )
-                or raw_answer
-            )
-
-            return clean_answer, None
-
-        except Exception as e:
-
-            last_error = e
-
-            if not is_rate_limit_error(e):
-                raise
-
-            error_text = str(e).lower()
-
-            if (
-                "tokens per day" in error_text
-                or "tpd" in error_text
-            ):
-                raise
-
-            retry_seconds = extract_retry_seconds(e)
-
-            if retry_seconds <= 0:
-                retry_seconds = 2 ** attempt
-
-            retry_seconds = min(
-                retry_seconds,
-                MAX_RETRY_WAIT
-            )
-
-            if attempt < MAX_RETRIES:
-
-                time.sleep(
-                    retry_seconds
-                )
-
-            else:
-                break
+                print(f"[MODEL OK] {model_name}")
+                return answer, image_url, model_name
+            except Exception as e:
+                last_error = e
+                print(f"[MODEL ERROR] model={model_name} attempt={attempt + 1}: {e}")
+                retryable = is_503_error(e) or is_rate_limit_error(e)
+                if not retryable:
+                    raise
+                # لا ننتظر طويلًا عند 503: جرّب مرة ثانية ثم انتقل للنموذج الاحتياطي.
+                wait = extract_retry_seconds(e) or min(2 ** attempt, MAX_RETRY_WAIT)
+                if attempt < MAX_RETRIES:
+                    time.sleep(min(wait, MAX_RETRY_WAIT))
+        if index < len(models) - 1:
+            print(f"[MODEL FALLBACK] {model_name} failed -> {models[index + 1]}")
 
     if last_error:
         raise last_error
+    raise RuntimeError("فشل الاتصال بنماذج Gemini.")
 
-    raise RuntimeError(
-        "فشل الاتصال بالنموذج."
+
+# Backward-compatible name used elsewhere in the project.
+def call_model_with_image_tool(outgoing_messages):
+    answer, image_url, _ = call_gemini_with_fallback(
+        outgoing_messages, allow_image_tool=True
     )
+    return answer, image_url
 
 
 # =========================================================
@@ -1375,6 +1303,21 @@ def chat():
     chat_session_id = (
         get_chat_session_id()
     )
+
+    # =====================================================
+    # 0. LOCAL GREETINGS
+    # لا Gemini ولا Tavily ولا RAG للتحيات البسيطة.
+    # =====================================================
+    if is_greeting(user_message):
+        answer = greeting_answer(user_message)
+        try:
+            database.save_message(chat_session_id, "user", user_message)
+            database.save_message(chat_session_id, "assistant", answer)
+        except Exception as e:
+            print(f"[DATABASE ERROR - GREETING] {e}")
+        save_chat_to_session(user_message, answer)
+        print("[LOCAL GREETING] no Gemini / no Web")
+        return jsonify({"answer": answer, "sources": [], "local": True})
 
     # =====================================================
     # 1. NAME QUESTION
@@ -1664,15 +1607,7 @@ def chat():
         and float(results[0].get("score", 0)) >= rag_threshold
     )
 
-    # التحية والمحادثة القصيرة لا تحتاج بحث ويب.
-    # نستخدم Web فقط عندما تكون الرسالة سؤال معرفة فعلياً.
-    should_use_web = (
-        not strong_rag
-        and not is_simple_greeting(user_message)
-        and len(normalize_text(user_message)) >= 12
-    )
-
-    if should_use_web:
+    if not strong_rag:
         web_results = search_web_tavily(user_message)
         if web_results:
             web_context = "## نتائج البحث على الويب:\n\n"
@@ -1719,13 +1654,12 @@ def chat():
             )
         })
 
-        if not web_results:
-            sources_used = sorted({
-                r["source"]
-                for r in results
-                if isinstance(r, dict)
-                and r.get("source")
-            })
+        sources_used = sorted({
+            r["source"]
+            for r in results
+            if isinstance(r, dict)
+            and r.get("source")
+        })
 
     # =====================================================
     # 7. CURRENT USER MESSAGE
@@ -1741,43 +1675,50 @@ def chat():
     # =====================================================
 
     try:
-
-        answer, image_url = (
-            call_model_with_image_tool(
-                outgoing_messages,
-                use_image_tool=is_image_request(user_message)
-            )
+        answer, image_url, used_model = call_gemini_with_fallback(
+            outgoing_messages,
+            allow_image_tool=is_image_request(user_message)
         )
 
     except Exception as e:
+        print(f"[MODEL FALLBACK ERROR] {e}")
 
-        print(
-            f"[MODEL ERROR] {e}"
-        )
+        # إذا فشل Gemini الأساسي والاحتياطي، استخدم Tavily كحل أخير.
+        # لا نفعل ذلك للتحيات لأنها عولجت محليًا أعلاه.
+        if not web_results:
+            web_results = search_web_tavily(user_message)
 
-        session["messages"] = (
-            build_optimized_history(
-                messages
-            )
-        )
+        if web_results:
+            answer_parts = []
+            for item in web_results[:3]:
+                content = (item.get("content") or "").strip()
+                if content:
+                    answer_parts.append(content)
 
-        if is_rate_limit_error(e):
-
-            friendly_error = (
-                rate_limit_user_message(e)
-            )
-
+            if answer_parts:
+                answer = "\n\n".join(answer_parts)
+                image_url = None
+                used_model = "tavily-fallback"
+                sources_used = [
+                    item["url"] for item in web_results if item.get("url")
+                ]
+                print("[TAVILY FALLBACK] Gemini unavailable; using web results")
+            else:
+                return jsonify({
+                    "error": "تعذر الحصول على إجابة الآن من Gemini أو البحث على الويب. يرجى المحاولة بعد قليل.",
+                    "temporary_error": True
+                }), 503
+        else:
+            session["messages"] = build_optimized_history(messages)
+            if is_rate_limit_error(e):
+                return jsonify({
+                    "error": rate_limit_user_message(e),
+                    "rate_limited": True
+                }), 429
             return jsonify({
-                "error": friendly_error,
-                "rate_limited": True
-            }), 429
-
-        return jsonify({
-            "error":
-                "حدث خطأ مؤقت في الاتصال "
-                "بخدمة الذكاء الاصطناعي. "
-                "يرجى المحاولة مرة أخرى."
-        }), 503
+                "error": "تعذر الاتصال مؤقتًا بخدمة الذكاء الاصطناعي والبحث على الويب. يرجى المحاولة مرة أخرى.",
+                "temporary_error": True
+            }), 503
 
     # =====================================================
     # 9. LEARN WEB ANSWER
@@ -1852,7 +1793,8 @@ def chat():
         "sources": sources_used,
         "memory_hit": False,
         "web_searched": bool(web_results),
-        "learned": learned
+        "learned": learned,
+        "model": used_model
     }
 
     if image_url:
