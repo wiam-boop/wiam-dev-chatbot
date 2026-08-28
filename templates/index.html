@@ -12,7 +12,6 @@
 
 <title>Wiam Dev ChatBot</title>
 
-
 <link
   rel="preconnect"
   href="https://fonts.googleapis.com"
@@ -29,7 +28,6 @@
   rel="stylesheet"
 >
 
-
 <style>
 
 /* =========================================================
@@ -37,12 +35,10 @@
    ========================================================= */
 
 :root{
-
   --bg-main:#1e1e20;
   --bg-sidebar:#161618;
   --bg-elevated:#2a2a2d;
   --bg-input:#2f2f33;
-
   --border:#333336;
 
   --text-primary:#ececec;
@@ -60,7 +56,6 @@
 
   --font-ui:'Tajawal',sans-serif;
   --font-mono:'IBM Plex Mono',monospace;
-
 }
 
 
@@ -69,45 +64,30 @@
    ========================================================= */
 
 *{
-
   box-sizing:border-box;
-
   margin:0;
   padding:0;
-
 }
-
 
 html,
 body{
-
   width:100%;
   height:100%;
-
 }
-
 
 html{
-
   overflow:hidden;
-
 }
 
-
 body{
-
   font-family:var(--font-ui);
-
   background:var(--bg-main);
-
   color:var(--text-primary);
 
   display:flex;
 
   overflow:hidden;
-
   min-width:0;
-
 }
 
 
@@ -116,7 +96,6 @@ body{
    ========================================================= */
 
 #sidebar{
-
   width:280px;
   min-width:280px;
 
@@ -133,16 +112,13 @@ body{
   transition:
     margin-right .25s ease,
     transform .25s ease;
-
 }
 
 
 /* Desktop */
 
 #sidebar.collapsed{
-
   margin-right:-280px;
-
 }
 
 
@@ -151,32 +127,24 @@ body{
    ========================================================= */
 
 .sidebar-header{
-
   padding:16px;
 
   display:flex;
   flex-direction:column;
 
   gap:10px;
-
 }
 
-
 .brand{
-
   display:flex;
-
   align-items:center;
 
   gap:10px;
 
   padding:0 4px 6px;
-
 }
 
-
 .brand-icon{
-
   width:32px;
   height:32px;
 
@@ -190,25 +158,18 @@ body{
     );
 
   display:flex;
-
   align-items:center;
   justify-content:center;
 
   font-size:16px;
 
   flex-shrink:0;
-
 }
 
-
 .brand-name{
-
   font-weight:900;
-
   font-size:16px;
-
   letter-spacing:.2px;
-
 }
 
 
@@ -217,9 +178,7 @@ body{
    ========================================================= */
 
 .new-chat-btn{
-
   display:flex;
-
   align-items:center;
 
   gap:10px;
@@ -237,7 +196,6 @@ body{
   font-family:var(--font-ui);
 
   font-size:14px;
-
   font-weight:500;
 
   cursor:pointer;
@@ -247,16 +205,11 @@ body{
     border-color .15s;
 
   width:100%;
-
 }
 
-
 .new-chat-btn:hover{
-
   background:var(--bg-elevated);
-
   border-color:#444;
-
 }
 
 
@@ -265,7 +218,6 @@ body{
    ========================================================= */
 
 .sidebar-section-label{
-
   font-size:11px;
 
   color:var(--text-secondary);
@@ -277,7 +229,6 @@ body{
   padding:14px 16px 6px;
 
   font-weight:700;
-
 }
 
 
@@ -286,11 +237,9 @@ body{
    ========================================================= */
 
 #conversationsList{
-
   padding:0 12px 8px;
 
   display:flex;
-
   flex-direction:column;
 
   gap:5px;
@@ -298,25 +247,20 @@ body{
   max-height:240px;
 
   overflow-y:auto;
-
   overflow-x:hidden;
 
   -webkit-overflow-scrolling:touch;
-
 }
 
-
 .conversation-item{
-
   width:100%;
 
   display:flex;
-
   align-items:center;
 
   gap:8px;
 
-  padding:10px 10px;
+  padding:10px;
 
   border:1px solid transparent;
 
@@ -339,39 +283,24 @@ body{
     border-color .15s;
 
   touch-action:manipulation;
-
 }
-
 
 .conversation-item:hover{
-
   background:var(--bg-elevated);
-
   border-color:var(--border);
-
 }
-
 
 .conversation-item.active{
-
   background:var(--accent-soft);
-
   border-color:rgba(108,92,231,.35);
-
 }
-
 
 .conversation-icon{
-
   flex-shrink:0;
-
   font-size:14px;
-
 }
 
-
 .conversation-title{
-
   flex:1;
 
   min-width:0;
@@ -381,12 +310,9 @@ body{
   text-overflow:ellipsis;
 
   white-space:nowrap;
-
 }
 
-
 .conversation-delete{
-
   flex-shrink:0;
 
   border:0;
@@ -402,16 +328,12 @@ body{
   cursor:pointer;
 
   border-radius:5px;
-
 }
 
-
 .conversation-delete:hover{
-
   color:var(--danger);
 
   background:rgba(229,88,79,.12);
-
 }
 
 
@@ -420,28 +342,22 @@ body{
    ========================================================= */
 
 #docsPanelSidebar{
-
   flex:1;
 
   overflow-y:auto;
-
   overflow-x:hidden;
 
   padding:0 12px 12px;
 
   display:flex;
-
   flex-direction:column;
 
   gap:8px;
 
   -webkit-overflow-scrolling:touch;
-
 }
 
-
 .upload-zone{
-
   border:1.5px dashed var(--border);
 
   border-radius:var(--radius-md);
@@ -462,47 +378,32 @@ body{
     background .15s;
 
   line-height:1.6;
-
 }
-
 
 .upload-zone:hover{
-
   border-color:var(--accent);
-
   color:var(--accent);
-
 }
 
-
 .upload-zone.dragover{
-
   border-color:var(--accent);
 
   background:var(--accent-soft);
 
   color:var(--accent);
-
 }
 
-
 #docsList{
-
   display:flex;
-
   flex-direction:column;
 
   gap:6px;
-
 }
 
-
 .doc-item{
-
   display:flex;
 
   justify-content:space-between;
-
   align-items:center;
 
   background:var(--bg-elevated);
@@ -516,12 +417,9 @@ body{
   font-size:12.5px;
 
   gap:6px;
-
 }
 
-
 .doc-item .doc-name{
-
   overflow:hidden;
 
   text-overflow:ellipsis;
@@ -529,29 +427,22 @@ body{
   white-space:nowrap;
 
   display:flex;
-
   align-items:center;
 
   gap:6px;
 
   color:var(--text-primary);
-
 }
 
-
 .doc-item .doc-chunks{
-
   color:var(--text-secondary);
 
   font-size:11px;
 
   flex-shrink:0;
-
 }
 
-
 .doc-item .del-btn{
-
   background:none;
 
   border:none;
@@ -571,21 +462,15 @@ body{
   transition:
     color .15s,
     background .15s;
-
 }
 
-
 .doc-item .del-btn:hover{
-
   color:var(--danger);
 
   background:rgba(229,88,79,.12);
-
 }
 
-
 .empty-hint{
-
   color:var(--text-secondary);
 
   font-size:12.5px;
@@ -593,7 +478,6 @@ body{
   text-align:center;
 
   padding:10px 4px;
-
 }
 
 
@@ -602,7 +486,6 @@ body{
    ========================================================= */
 
 .sidebar-footer{
-
   padding:12px 16px 16px;
 
   border-top:1px solid var(--border);
@@ -610,7 +493,6 @@ body{
   font-size:12px;
 
   color:var(--text-secondary);
-
 }
 
 
@@ -619,11 +501,9 @@ body{
    ========================================================= */
 
 #main{
-
   flex:1;
 
   display:flex;
-
   flex-direction:column;
 
   height:100vh;
@@ -634,7 +514,6 @@ body{
   min-width:0;
 
   width:100%;
-
 }
 
 
@@ -643,7 +522,6 @@ body{
    ========================================================= */
 
 #topbar{
-
   display:flex;
 
   align-items:center;
@@ -655,12 +533,9 @@ body{
   border-bottom:1px solid var(--border);
 
   flex-shrink:0;
-
 }
 
-
 #toggleSidebarBtn{
-
   background:none;
 
   border:none;
@@ -676,37 +551,26 @@ body{
   border-radius:6px;
 
   display:flex;
-
   align-items:center;
-
   justify-content:center;
 
   transition:
     background .15s,
     color .15s;
-
-  -webkit-tap-highlight-color:transparent;
-
 }
 
-
 #toggleSidebarBtn:hover{
-
   background:var(--bg-elevated);
 
   color:var(--text-primary);
-
 }
 
-
 #topbar-title{
-
   font-weight:700;
 
   font-size:15px;
 
   color:var(--text-primary);
-
 }
 
 
@@ -715,7 +579,6 @@ body{
    ========================================================= */
 
 #chat{
-
   flex:1;
 
   min-height:0;
@@ -723,7 +586,6 @@ body{
   width:100%;
 
   overflow-y:auto;
-
   overflow-x:hidden;
 
   padding:24px 0 8px;
@@ -735,12 +597,9 @@ body{
   touch-action:pan-y;
 
   scroll-behavior:smooth;
-
 }
 
-
 #chat-inner{
-
   width:100%;
 
   max-width:720px;
@@ -750,13 +609,11 @@ body{
   padding:0 20px;
 
   display:flex;
-
   flex-direction:column;
 
   gap:22px;
 
   min-width:0;
-
 }
 
 
@@ -765,15 +622,12 @@ body{
    ========================================================= */
 
 #emptyState{
-
   min-height:100%;
 
   display:flex;
-
   flex-direction:column;
 
   align-items:center;
-
   justify-content:center;
 
   text-align:center;
@@ -783,12 +637,9 @@ body{
   color:var(--text-secondary);
 
   padding:40px 20px;
-
 }
 
-
 #emptyState .empty-icon{
-
   width:56px;
   height:56px;
 
@@ -802,34 +653,26 @@ body{
     );
 
   display:flex;
-
   align-items:center;
   justify-content:center;
 
   font-size:26px;
-
 }
 
-
 #emptyState h2{
-
   color:var(--text-primary);
 
   font-size:19px;
 
   font-weight:900;
-
 }
 
-
 #emptyState p{
-
   font-size:13.5px;
 
   max-width:340px;
 
   line-height:1.7;
-
 }
 
 
@@ -838,7 +681,6 @@ body{
    ========================================================= */
 
 .msg-row{
-
   display:flex;
 
   gap:12px;
@@ -848,28 +690,20 @@ body{
   width:100%;
 
   min-width:0;
-
 }
-
 
 .msg-row.user{
-
   flex-direction:row;
-
 }
 
-
 .avatar{
-
   width:30px;
   height:30px;
 
   border-radius:8px;
 
   display:flex;
-
   align-items:center;
-
   justify-content:center;
 
   font-size:14px;
@@ -877,44 +711,32 @@ body{
   flex-shrink:0;
 
   margin-top:2px;
-
 }
 
-
 .avatar.bot{
-
   background:
     linear-gradient(
       135deg,
       var(--accent),
       #a29bfe
     );
-
 }
 
-
 .avatar.user{
-
   background:var(--bg-elevated);
 
   border:1px solid var(--border);
-
 }
 
-
 .msg-body{
-
   flex:1;
 
   min-width:0;
 
   max-width:100%;
-
 }
 
-
 .msg-name{
-
   font-size:12.5px;
 
   font-weight:700;
@@ -922,12 +744,9 @@ body{
   color:var(--text-secondary);
 
   margin-bottom:4px;
-
 }
 
-
 .msg-content{
-
   font-size:15px;
 
   line-height:1.85;
@@ -941,14 +760,10 @@ body{
   overflow-wrap:anywhere;
 
   max-width:100%;
-
 }
 
-
 .msg-content.error{
-
   color:var(--danger);
-
 }
 
 
@@ -957,7 +772,6 @@ body{
    ========================================================= */
 
 .msg-content pre{
-
   background:#101012;
 
   border:1px solid var(--border);
@@ -983,12 +797,9 @@ body{
   -webkit-overflow-scrolling:touch;
 
   touch-action:pan-x;
-
 }
 
-
 .msg-content code{
-
   background:#101012;
 
   padding:2px 6px;
@@ -1006,16 +817,12 @@ body{
   max-width:100%;
 
   overflow-wrap:anywhere;
-
 }
 
-
 .msg-content pre code{
-
   background:none;
 
   padding:0;
-
 }
 
 
@@ -1024,7 +831,6 @@ body{
    ========================================================= */
 
 .msg-image{
-
   margin-top:10px;
 
   max-width:100%;
@@ -1038,12 +844,9 @@ body{
   overflow:hidden;
 
   background:var(--bg-elevated);
-
 }
 
-
 .msg-image img{
-
   width:100%;
 
   max-width:420px;
@@ -1051,12 +854,9 @@ body{
   height:auto;
 
   display:block;
-
 }
 
-
 .msg-image .img-loading{
-
   padding:14px;
 
   font-size:12.5px;
@@ -1064,7 +864,6 @@ body{
   color:var(--text-secondary);
 
   text-align:center;
-
 }
 
 
@@ -1073,7 +872,6 @@ body{
    ========================================================= */
 
 .sources-note{
-
   font-size:12px;
 
   color:var(--text-secondary);
@@ -1087,7 +885,6 @@ body{
   gap:6px;
 
   overflow-wrap:anywhere;
-
 }
 
 
@@ -1096,18 +893,14 @@ body{
    ========================================================= */
 
 .typing-dots{
-
   display:flex;
 
   gap:4px;
 
   padding:4px 0;
-
 }
 
-
 .typing-dots span{
-
   width:6px;
   height:6px;
 
@@ -1117,44 +910,29 @@ body{
 
   animation:
     bounce 1.2s infinite ease-in-out;
-
 }
-
 
 .typing-dots span:nth-child(2){
-
   animation-delay:.15s;
-
 }
-
 
 .typing-dots span:nth-child(3){
-
   animation-delay:.3s;
-
 }
-
 
 @keyframes bounce{
 
   0%,
   80%,
   100%{
-
     transform:translateY(0);
-
     opacity:.5;
-
   }
 
   40%{
-
     transform:translateY(-4px);
-
     opacity:1;
-
   }
-
 }
 
 
@@ -1163,34 +941,27 @@ body{
    ========================================================= */
 
 #inputArea{
-
   padding:14px 20px 20px;
 
   flex-shrink:0;
 
   width:100%;
-
 }
 
-
 #inputWrap{
-
   width:100%;
 
   max-width:720px;
 
   margin:0 auto;
-
 }
 
-
 form#chatForm{
-
   display:flex;
 
   align-items:flex-end;
 
-  gap:8px;
+  gap:6px;
 
   background:var(--bg-input);
 
@@ -1198,26 +969,25 @@ form#chatForm{
 
   border-radius:var(--radius-lg);
 
-  padding:8px 10px 8px 8px;
+  padding:8px;
 
   transition:border-color .15s;
 
   width:100%;
 
   min-width:0;
-
 }
-
 
 form#chatForm:focus-within{
-
   border-color:var(--accent);
-
 }
 
 
-#attachBtn{
+/* =========================================================
+   ATTACH BUTTON
+   ========================================================= */
 
+#attachBtn{
   background:none;
 
   border:none;
@@ -1237,21 +1007,112 @@ form#chatForm:focus-within{
   transition:
     background .15s,
     color .15s;
-
 }
 
-
 #attachBtn:hover{
-
   background:var(--bg-elevated);
 
   color:var(--text-primary);
-
 }
 
 
-#msgInput{
+/* =========================================================
+   VOICE INPUT BUTTON
+   ========================================================= */
 
+#voiceBtn{
+  background:none;
+
+  border:none;
+
+  color:var(--text-secondary);
+
+  cursor:pointer;
+
+  font-size:19px;
+
+  padding:8px;
+
+  border-radius:var(--radius-sm);
+
+  flex-shrink:0;
+
+  transition:
+    background .15s,
+    color .15s,
+    transform .15s;
+}
+
+#voiceBtn:hover{
+  background:var(--bg-elevated);
+
+  color:var(--text-primary);
+}
+
+#voiceBtn.listening{
+  background:rgba(229,88,79,.15);
+
+  color:#ff6b61;
+
+  animation:voicePulse 1.2s infinite;
+}
+
+@keyframes voicePulse{
+
+  0%,
+  100%{
+    transform:scale(1);
+  }
+
+  50%{
+    transform:scale(1.12);
+  }
+}
+
+
+/* =========================================================
+   STOP SPEAK BUTTON
+   ========================================================= */
+
+#stopSpeechBtn{
+  display:none;
+
+  background:none;
+
+  border:none;
+
+  color:var(--text-secondary);
+
+  cursor:pointer;
+
+  font-size:18px;
+
+  padding:8px;
+
+  border-radius:var(--radius-sm);
+
+  flex-shrink:0;
+}
+
+#stopSpeechBtn:hover{
+  background:var(--bg-elevated);
+
+  color:var(--danger);
+}
+
+#stopSpeechBtn.visible{
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+}
+
+
+/* =========================================================
+   TEXT INPUT
+   ========================================================= */
+
+#msgInput{
   flex:1;
 
   min-width:0;
@@ -1277,19 +1138,18 @@ form#chatForm:focus-within{
   max-height:160px;
 
   line-height:1.5;
-
 }
-
 
 #msgInput::placeholder{
-
   color:var(--text-secondary);
-
 }
 
 
-#sendBtn{
+/* =========================================================
+   SEND
+   ========================================================= */
 
+#sendBtn{
   background:var(--accent);
 
   color:#fff;
@@ -1297,6 +1157,7 @@ form#chatForm:focus-within{
   border:none;
 
   width:38px;
+
   height:38px;
 
   min-width:38px;
@@ -1312,34 +1173,29 @@ form#chatForm:focus-within{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
   transition:
     background .15s,
     opacity .15s;
-
 }
-
 
 #sendBtn:hover:not(:disabled){
-
   background:var(--accent-hover);
-
 }
 
-
 #sendBtn:disabled{
-
   opacity:.4;
 
   cursor:not-allowed;
-
 }
 
 
-#inputFootnote{
+/* =========================================================
+   FOOTNOTE
+   ========================================================= */
 
+#inputFootnote{
   text-align:center;
 
   font-size:11.5px;
@@ -1347,14 +1203,10 @@ form#chatForm:focus-within{
   color:var(--text-secondary);
 
   margin-top:10px;
-
 }
 
-
 #fileInput{
-
   display:none;
-
 }
 
 
@@ -1363,9 +1215,7 @@ form#chatForm:focus-within{
    ========================================================= */
 
 #sidebarOverlay{
-
   display:none;
-
 }
 
 
@@ -1374,32 +1224,143 @@ form#chatForm:focus-within{
    ========================================================= */
 
 ::-webkit-scrollbar{
-
   width:8px;
-
 }
-
 
 ::-webkit-scrollbar-track{
-
   background:transparent;
-
 }
 
-
 ::-webkit-scrollbar-thumb{
-
   background:#3a3a3e;
 
   border-radius:8px;
+}
 
+::-webkit-scrollbar-thumb:hover{
+  background:#4a4a4e;
 }
 
 
-::-webkit-scrollbar-thumb:hover{
+/* =========================================================
+   MARKDOWN
+   ========================================================= */
 
-  background:#4a4a4e;
+.msg-content h1,
+.msg-content h2,
+.msg-content h3,
+.msg-content h4,
+.msg-content h5,
+.msg-content h6{
+  margin:12px 0 6px;
 
+  font-weight:700;
+
+  line-height:1.4;
+
+  color:var(--text-primary);
+}
+
+.msg-content h1{
+  font-size:1.3em;
+}
+
+.msg-content h2{
+  font-size:1.15em;
+}
+
+.msg-content h3{
+  font-size:1.05em;
+}
+
+.msg-content p{
+  margin:6px 0;
+
+  line-height:1.7;
+}
+
+.msg-content ul,
+.msg-content ol{
+  padding-right:20px;
+
+  margin:6px 0;
+}
+
+.msg-content li{
+  margin:4px 0;
+
+  line-height:1.6;
+}
+
+.msg-content table{
+  border-collapse:collapse;
+
+  width:100%;
+
+  margin:10px 0;
+
+  font-size:13px;
+}
+
+.msg-content th,
+.msg-content td{
+  border:1px solid var(--border);
+
+  padding:8px 12px;
+
+  text-align:right;
+}
+
+.msg-content th{
+  background:var(--bg-elevated);
+
+  font-weight:700;
+}
+
+.msg-content tr:nth-child(even){
+  background:rgba(255,255,255,.03);
+}
+
+.msg-content blockquote{
+  border-right:3px solid var(--accent);
+
+  padding:8px 12px;
+
+  margin:8px 0;
+
+  background:var(--accent-soft);
+
+  border-radius:4px;
+
+  color:var(--text-secondary);
+}
+
+.msg-content a{
+  color:var(--accent);
+
+  text-decoration:none;
+}
+
+.msg-content a:hover{
+  text-decoration:underline;
+}
+
+.msg-content hr{
+  border:none;
+
+  border-top:1px solid var(--border);
+
+  margin:12px 0;
+}
+
+.msg-content strong{
+  font-weight:700;
+
+  color:var(--text-primary);
+}
+
+.msg-content em{
+  font-style:italic;
 }
 
 
@@ -1410,20 +1371,14 @@ form#chatForm:focus-within{
 @media (max-width:760px){
 
   html{
-
     width:100%;
-
     height:100%;
 
     overflow:hidden;
-
   }
 
-
   body{
-
     width:100%;
-
     height:100%;
 
     min-width:0;
@@ -1435,16 +1390,12 @@ form#chatForm:focus-within{
     inset:0;
 
     overscroll-behavior:none;
-
   }
 
 
-  /* =====================================================
-     MAIN
-     ===================================================== */
+  /* MAIN */
 
   #main{
-
     width:100%;
 
     min-width:0;
@@ -1452,22 +1403,16 @@ form#chatForm:focus-within{
     max-width:100%;
 
     height:100vh;
-
     height:100dvh;
-
   }
 
 
-  /* =====================================================
-     SIDEBAR
-     ===================================================== */
+  /* SIDEBAR */
 
   #sidebar{
-
     position:fixed;
 
     top:0;
-
     right:0;
 
     width:min(285px,84vw);
@@ -1477,7 +1422,6 @@ form#chatForm:focus-within{
     max-width:300px;
 
     height:100vh;
-
     height:100dvh;
 
     z-index:1001;
@@ -1499,40 +1443,22 @@ form#chatForm:focus-within{
     -webkit-overflow-scrolling:touch;
 
     touch-action:pan-y;
-
   }
 
-
-  /*
-     مغلق
-  */
-
   #sidebar.collapsed{
-
     margin:0;
 
     transform:translateX(100%);
-
   }
-
-
-  /*
-     مفتوح
-  */
 
   #sidebar:not(.collapsed){
-
     transform:translateX(0);
-
   }
 
 
-  /* =====================================================
-     OVERLAY
-     ===================================================== */
+  /* OVERLAY */
 
   #sidebarOverlay{
-
     display:block;
 
     position:fixed;
@@ -1554,27 +1480,20 @@ form#chatForm:focus-within{
       visibility .25s ease;
 
     touch-action:none;
-
   }
 
-
   #sidebarOverlay.active{
-
     opacity:1;
 
     visibility:visible;
 
     pointer-events:auto;
-
   }
 
 
-  /* =====================================================
-     TOPBAR
-     ===================================================== */
+  /* TOPBAR */
 
   #topbar{
-
     width:100%;
 
     min-height:58px;
@@ -1584,12 +1503,9 @@ form#chatForm:focus-within{
       max(10px, env(safe-area-inset-right))
       10px
       max(10px, env(safe-area-inset-left));
-
   }
 
-
   #toggleSidebarBtn{
-
     width:40px;
 
     height:40px;
@@ -1601,23 +1517,16 @@ form#chatForm:focus-within{
     font-size:20px;
 
     touch-action:manipulation;
-
   }
-
 
   #topbar-title{
-
     font-size:14px;
-
   }
 
 
-  /* =====================================================
-     CHAT
-     ===================================================== */
+  /* CHAT */
 
   #chat{
-
     width:100%;
 
     max-width:100%;
@@ -1637,12 +1546,9 @@ form#chatForm:focus-within{
     touch-action:pan-y;
 
     overscroll-behavior-y:contain;
-
   }
 
-
   #chat-inner{
-
     width:100%;
 
     max-width:720px;
@@ -1656,41 +1562,27 @@ form#chatForm:focus-within{
       max(10px, env(safe-area-inset-left));
 
     gap:18px;
-
   }
 
 
-  /* =====================================================
-     EMPTY
-     ===================================================== */
+  /* EMPTY */
 
   #emptyState{
-
     padding:30px 15px;
-
   }
-
 
   #emptyState h2{
-
     font-size:17px;
-
   }
-
 
   #emptyState p{
-
     font-size:13px;
-
   }
 
 
-  /* =====================================================
-     MESSAGES
-     ===================================================== */
+  /* MESSAGES */
 
   .msg-row{
-
     width:100%;
 
     max-width:100%;
@@ -1698,12 +1590,9 @@ form#chatForm:focus-within{
     min-width:0;
 
     gap:8px;
-
   }
 
-
   .avatar{
-
     width:28px;
 
     height:28px;
@@ -1711,23 +1600,17 @@ form#chatForm:focus-within{
     min-width:28px;
 
     font-size:13px;
-
   }
 
-
   .msg-body{
-
     width:100%;
 
     min-width:0;
 
     max-width:calc(100% - 36px);
-
   }
 
-
   .msg-content{
-
     width:100%;
 
     max-width:100%;
@@ -1739,12 +1622,9 @@ form#chatForm:focus-within{
     overflow-wrap:anywhere;
 
     word-break:break-word;
-
   }
 
-
   .msg-content pre{
-
     width:100%;
 
     max-width:100%;
@@ -1758,45 +1638,32 @@ form#chatForm:focus-within{
     font-size:12px;
 
     padding:10px;
-
   }
 
-
   .msg-content code{
-
     max-width:100%;
 
     font-size:12px;
-
   }
 
-
   .msg-image{
-
     width:100%;
 
     max-width:100%;
-
   }
 
-
   .msg-image img{
-
     width:100%;
 
     max-width:100%;
 
     height:auto;
-
   }
 
 
-  /* =====================================================
-     INPUT
-     ===================================================== */
+  /* INPUT */
 
   #inputArea{
-
     width:100%;
 
     max-width:100%;
@@ -1806,49 +1673,53 @@ form#chatForm:focus-within{
       max(8px, env(safe-area-inset-right))
       max(8px, env(safe-area-inset-bottom))
       max(8px, env(safe-area-inset-left));
-
   }
 
-
   #inputWrap{
-
     width:100%;
 
     max-width:none;
-
   }
 
-
   form#chatForm{
-
     width:100%;
 
     max-width:100%;
 
     min-width:0;
 
-    gap:5px;
+    gap:4px;
 
     padding:6px;
 
     border-radius:15px;
-
   }
 
-
   #attachBtn{
-
     font-size:17px;
 
     padding:7px;
 
     min-width:32px;
-
   }
 
+  #voiceBtn{
+    font-size:17px;
+
+    padding:7px;
+
+    min-width:32px;
+  }
+
+  #stopSpeechBtn{
+    font-size:17px;
+
+    padding:7px;
+
+    min-width:32px;
+  }
 
   #msgInput{
-
     min-width:0;
 
     width:100%;
@@ -1856,12 +1727,9 @@ form#chatForm:focus-within{
     font-size:16px;
 
     padding:8px 3px;
-
   }
 
-
   #sendBtn{
-
     width:38px;
 
     height:38px;
@@ -1869,25 +1737,18 @@ form#chatForm:focus-within{
     min-width:38px;
 
     border-radius:10px;
-
   }
 
-
   #inputFootnote{
-
     font-size:10px;
 
     margin-top:7px;
-
   }
 
 
-  /* =====================================================
-     CONVERSATIONS
-     ===================================================== */
+  /* CONVERSATIONS */
 
   #conversationsList{
-
     max-height:220px;
 
     overflow-y:auto;
@@ -1895,18 +1756,13 @@ form#chatForm:focus-within{
     -webkit-overflow-scrolling:touch;
 
     touch-action:pan-y;
-
   }
 
-
   .conversation-item{
-
     min-height:42px;
 
     padding:10px;
-
   }
-
 }
 
 
@@ -1917,38 +1773,26 @@ form#chatForm:focus-within{
 @media (max-width:480px){
 
   #sidebar{
-
     width:86vw;
 
     max-width:300px;
-
   }
-
 
   #chat-inner{
-
     padding-left:10px;
 
     padding-right:10px;
-
   }
-
 
   .msg-content{
-
     font-size:13.5px;
-
   }
 
-
   #topbar{
-
     padding-left:10px;
 
     padding-right:10px;
-
   }
-
 }
 
 
@@ -1959,95 +1803,50 @@ form#chatForm:focus-within{
 @media (max-width:360px){
 
   #sidebar{
-
     width:89vw;
-
   }
 
-
   #chat-inner{
-
     padding-left:8px;
 
     padding-right:8px;
-
   }
-
 
   .msg-content{
-
     font-size:13px;
-
   }
 
-
   #sendBtn{
-
     width:36px;
 
     height:36px;
 
     min-width:36px;
-
   }
 
+  #voiceBtn{
+    padding:6px;
+
+    min-width:30px;
+  }
+
+  #attachBtn{
+    padding:6px;
+
+    min-width:30px;
+  }
+
+  #stopSpeechBtn{
+    padding:6px;
+
+    min-width:30px;
+  }
 }
 
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-<style>
-/* =========================================================
-   MARKDOWN STYLES
-   ========================================================= */
-.msg-content h1,.msg-content h2,.msg-content h3,
-.msg-content h4,.msg-content h5,.msg-content h6{
-  margin:12px 0 6px;
-  font-weight:700;
-  line-height:1.4;
-  color:var(--text-primary);
-}
-.msg-content h1{font-size:1.3em;}
-.msg-content h2{font-size:1.15em;}
-.msg-content h3{font-size:1.05em;}
-.msg-content p{margin:6px 0;line-height:1.7;}
-.msg-content ul,.msg-content ol{
-  padding-right:20px;
-  margin:6px 0;
-}
-.msg-content li{margin:4px 0;line-height:1.6;}
-.msg-content table{
-  border-collapse:collapse;
-  width:100%;
-  margin:10px 0;
-  font-size:13px;
-}
-.msg-content th,.msg-content td{
-  border:1px solid var(--border);
-  padding:8px 12px;
-  text-align:right;
-}
-.msg-content th{
-  background:var(--bg-elevated);
-  font-weight:700;
-}
-.msg-content tr:nth-child(even){
-  background:rgba(255,255,255,.03);
-}
-.msg-content blockquote{
-  border-right:3px solid var(--accent);
-  padding:8px 12px;
-  margin:8px 0;
-  background:var(--accent-soft);
-  border-radius:4px;
-  color:var(--text-secondary);
-}
-.msg-content a{color:var(--accent);text-decoration:none;}
-.msg-content a:hover{text-decoration:underline;}
-.msg-content hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
-.msg-content strong{font-weight:700;color:var(--text-primary);}
-.msg-content em{font-style:italic;}
-</style>
+
 </head>
 
 
@@ -2067,9 +1866,7 @@ form#chatForm:focus-within{
 
 <aside id="sidebar">
 
-
   <div class="sidebar-header">
-
 
     <div class="brand">
 
@@ -2105,9 +1902,7 @@ form#chatForm:focus-within{
        =================================================== -->
 
   <div class="sidebar-section-label">
-
     المحادثات السابقة
-
   </div>
 
 
@@ -2125,14 +1920,11 @@ form#chatForm:focus-within{
        =================================================== -->
 
   <div class="sidebar-section-label">
-
     قاعدة المعرفة
-
   </div>
 
 
   <div id="docsPanelSidebar">
-
 
     <div
       class="upload-zone"
@@ -2144,9 +1936,7 @@ form#chatForm:focus-within{
       <br>
 
       <span style="opacity:.7">
-
         PDF · Word · صورة · txt
-
       </span>
 
     </div>
@@ -2161,7 +1951,6 @@ form#chatForm:focus-within{
 
     <div id="docsList"></div>
 
-
   </div>
 
 
@@ -2170,7 +1959,6 @@ form#chatForm:focus-within{
     يعمل عبر Groq API — gpt-oss-120b
 
   </div>
-
 
 </aside>
 
@@ -2187,7 +1975,6 @@ form#chatForm:focus-within{
        =================================================== -->
 
   <div id="topbar">
-
 
     <button
       id="toggleSidebarBtn"
@@ -2206,7 +1993,6 @@ form#chatForm:focus-within{
 
     </div>
 
-
   </div>
 
 
@@ -2216,37 +2002,27 @@ form#chatForm:focus-within{
 
   <div id="chat">
 
-
     <div id="chat-inner">
 
-
       <div id="emptyState">
-
 
         <div class="empty-icon">
           🤖
         </div>
 
-
         <h2>
           كيف يمكنني مساعدتك اليوم؟
         </h2>
 
-
         <p>
-
           اسألني أي شيء، أو ارفع مستنداً
           (PDF/Word/صورة) من القائمة الجانبية
           لأجيب بناءً على محتواه.
-
         </p>
-
 
       </div>
 
-
     </div>
-
 
   </div>
 
@@ -2257,12 +2033,12 @@ form#chatForm:focus-within{
 
   <div id="inputArea">
 
-
     <div id="inputWrap">
-
 
       <form id="chatForm">
 
+
+        <!-- ATTACH -->
 
         <button
           type="button"
@@ -2273,12 +2049,40 @@ form#chatForm:focus-within{
         </button>
 
 
+        <!-- VOICE INPUT -->
+
+        <button
+          type="button"
+          id="voiceBtn"
+          title="التحدث بالصوت"
+          aria-label="التحدث بالصوت"
+        >
+          🎤
+        </button>
+
+
+        <!-- STOP SPEECH -->
+
+        <button
+          type="button"
+          id="stopSpeechBtn"
+          title="إيقاف صوت البوت"
+          aria-label="إيقاف صوت البوت"
+        >
+          🔇
+        </button>
+
+
+        <!-- TEXT -->
+
         <textarea
           id="msgInput"
           rows="1"
           placeholder="اكتب رسالتك..."
         ></textarea>
 
+
+        <!-- SEND -->
 
         <button
           id="sendBtn"
@@ -2288,28 +2092,21 @@ form#chatForm:focus-within{
           ➤
         </button>
 
-
       </form>
 
 
       <div id="inputFootnote">
-
         قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة
-
       </div>
-
 
     </div>
 
-
   </div>
-
 
 </div>
 
 
 <script>
-
 
 /* =========================================================
    ELEMENTS
@@ -2318,54 +2115,47 @@ form#chatForm:focus-within{
 const chatEl =
   document.getElementById("chat");
 
-
 const chatInner =
   document.getElementById("chat-inner");
-
 
 const form =
   document.getElementById("chatForm");
 
-
 const input =
   document.getElementById("msgInput");
-
 
 const sendBtn =
   document.getElementById("sendBtn");
 
-
 const resetBtn =
   document.getElementById("resetBtn");
-
 
 const toggleSidebarBtn =
   document.getElementById("toggleSidebarBtn");
 
-
 const sidebar =
   document.getElementById("sidebar");
-
 
 const sidebarOverlay =
   document.getElementById("sidebarOverlay");
 
-
 const uploadZone =
   document.getElementById("uploadZone");
-
 
 const fileInput =
   document.getElementById("fileInput");
 
-
 const attachBtn =
   document.getElementById("attachBtn");
 
+const voiceBtn =
+  document.getElementById("voiceBtn");
+
+const stopSpeechBtn =
+  document.getElementById("stopSpeechBtn");
 
 const docsList =
   document.getElementById("docsList");
-
 
 const conversationsList =
   document.getElementById(
@@ -2385,8 +2175,22 @@ let currentConversation = [];
 let currentConversationId =
   Date.now();
 
-
 let loadingConversation = false;
+
+
+/* =========================================================
+   VOICE STATE
+   ========================================================= */
+
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+let recognition = null;
+
+let isListening = false;
+
+let isSpeaking = false;
 
 
 /* =========================================================
@@ -2397,17 +2201,13 @@ function escapeHtml(str){
 
   return String(str).replace(
     /[&<>"']/g,
-
     m => ({
-
       '&':'&amp;',
       '<':'&lt;',
       '>':'&gt;',
       '"':'&quot;',
       "'":'&#39;'
-
     }[m])
-
   );
 
 }
@@ -2419,18 +2219,32 @@ function escapeHtml(str){
 
 function renderMarkdown(text){
 
-  if(!text) return "";
+  if(!text){
+    return "";
+  }
 
-  // إعداد marked.js
   marked.setOptions({
-    breaks: true,
-    gfm: true,
+
+    breaks:true,
+
+    gfm:true
+
   });
 
-  try {
-    return marked.parse(String(text));
-  } catch(e) {
-    return escapeHtml(text).replace(/\n/g, "<br>");
+  try{
+
+    return marked.parse(
+      String(text)
+    );
+
+  }catch(e){
+
+    return escapeHtml(text)
+      .replace(
+        /\n/g,
+        "<br>"
+      );
+
   }
 
 }
@@ -2449,13 +2263,9 @@ function ensureStarted(){
         "emptyState"
       );
 
-
     if(empty){
-
       empty.remove();
-
     }
-
 
     hasStarted = true;
 
@@ -2483,7 +2293,6 @@ function addMessage(
       "div"
     );
 
-
   row.className =
     "msg-row " + sender;
 
@@ -2493,10 +2302,8 @@ function addMessage(
       "div"
     );
 
-
   avatar.className =
     "avatar " + sender;
-
 
   avatar.textContent =
     sender === "user"
@@ -2509,7 +2316,6 @@ function addMessage(
       "div"
     );
 
-
   body.className =
     "msg-body";
 
@@ -2519,10 +2325,8 @@ function addMessage(
       "div"
     );
 
-
   name.className =
     "msg-name";
-
 
   name.textContent =
     sender === "user"
@@ -2534,7 +2338,6 @@ function addMessage(
     document.createElement(
       "div"
     );
-
 
   content.className =
     "msg-content" +
@@ -2561,10 +2364,8 @@ function addMessage(
         "div"
       );
 
-
     imgWrap.className =
       "msg-image";
-
 
     imgWrap.innerHTML =
       '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
@@ -2574,7 +2375,6 @@ function addMessage(
       document.createElement(
         "img"
       );
-
 
     img.alt =
       "صورة مولّدة";
@@ -2630,21 +2430,14 @@ function addMessage(
     avatar
   );
 
-
   row.appendChild(
     body
   );
 
 
-  chatInner.appendChild(
-    row
-  );
-
-
-  /*
-     لا نسجل الرسائل مرة أخرى
-     أثناء تحميل محادثة محفوظة
-  */
+  /* =====================================================
+     SAVE MESSAGE
+     ===================================================== */
 
   if(!loadingConversation){
 
@@ -2664,9 +2457,9 @@ function addMessage(
   }
 
 
-  /*
-     النزول لآخر رسالة
-  */
+  /* =====================================================
+     SCROLL
+     ===================================================== */
 
   requestAnimationFrame(
     () => {
@@ -2807,7 +2600,6 @@ function removeTyping(){
       "typingRow"
     );
 
-
   if(el){
 
     el.remove();
@@ -2818,7 +2610,572 @@ function removeTyping(){
 
 
 /* =========================================================
-   SIDEBAR FUNCTIONS
+   VOICE INPUT
+   ========================================================= */
+
+if(SpeechRecognition){
+
+  recognition =
+    new SpeechRecognition();
+
+
+  /*
+     اللغة الجزائرية / العربية
+  */
+
+  recognition.lang =
+    "ar-DZ";
+
+
+  recognition.continuous =
+    false;
+
+
+  recognition.interimResults =
+    true;
+
+
+  recognition.maxAlternatives =
+    1;
+
+
+  recognition.onstart =
+    () => {
+
+      isListening =
+        true;
+
+
+      voiceBtn.classList.add(
+        "listening"
+      );
+
+
+      voiceBtn.textContent =
+        "🔴";
+
+
+      voiceBtn.title =
+        "إيقاف التسجيل";
+
+
+      input.placeholder =
+        "تحدث الآن...";
+
+    };
+
+
+  recognition.onresult =
+    event => {
+
+      let finalText =
+        "";
+
+      let interimText =
+        "";
+
+
+      for(
+        let i =
+          event.resultIndex;
+
+        i <
+          event.results.length;
+
+        i++
+      ){
+
+        const transcript =
+          event.results[i][0]
+            .transcript;
+
+
+        if(
+          event.results[i]
+            .isFinal
+        ){
+
+          finalText +=
+            transcript;
+
+        }else{
+
+          interimText +=
+            transcript;
+
+        }
+
+      }
+
+
+      /*
+         النص النهائي
+      */
+
+      if(finalText){
+
+        const oldText =
+          input.value.trim();
+
+
+        input.value =
+          (
+            oldText +
+            " " +
+            finalText.trim()
+          ).trim();
+
+
+        input.dispatchEvent(
+          new Event("input")
+        );
+
+      }
+
+
+      /*
+         عرض الكلام المؤقت
+      */
+
+      if(interimText){
+
+        input.placeholder =
+          interimText;
+
+      }
+
+    };
+
+
+  recognition.onerror =
+    event => {
+
+      console.error(
+        "Speech recognition error:",
+        event.error
+      );
+
+
+      if(
+        event.error ===
+        "not-allowed"
+      ){
+
+        alert(
+          "يجب السماح للموقع باستخدام الميكروفون."
+        );
+
+      }
+
+
+      else if(
+        event.error ===
+        "no-speech"
+      ){
+
+        input.placeholder =
+          "لم يتم اكتشاف كلام، حاول مرة أخرى";
+
+      }
+
+
+      else if(
+        event.error ===
+        "audio-capture"
+      ){
+
+        alert(
+          "لم يتم العثور على ميكروفون."
+        );
+
+      }
+
+
+      stopVoiceRecognition();
+
+    };
+
+
+  recognition.onend =
+    () => {
+
+      stopVoiceRecognition();
+
+    };
+
+}else{
+
+  voiceBtn.disabled =
+    true;
+
+
+  voiceBtn.title =
+    "التعرف على الصوت غير مدعوم في هذا المتصفح";
+
+
+  voiceBtn.style.opacity =
+    ".4";
+
+}
+
+
+/* =========================================================
+   START VOICE
+   ========================================================= */
+
+function startVoiceRecognition(){
+
+  if(!recognition){
+
+    return;
+
+  }
+
+
+  if(isListening){
+
+    stopVoiceRecognition();
+
+    return;
+
+  }
+
+
+  /*
+     إيقاف قراءة البوت إذا بدأ المستخدم بالكلام
+  */
+
+  stopSpeaking();
+
+
+  try{
+
+    recognition.start();
+
+  }catch(error){
+
+    console.error(
+      "Could not start recognition:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   STOP VOICE
+   ========================================================= */
+
+function stopVoiceRecognition(){
+
+  isListening =
+    false;
+
+
+  voiceBtn.classList.remove(
+    "listening"
+  );
+
+
+  voiceBtn.textContent =
+    "🎤";
+
+
+  voiceBtn.title =
+    "التحدث بالصوت";
+
+
+  input.placeholder =
+    "اكتب رسالتك...";
+
+}
+
+
+/* =========================================================
+   VOICE BUTTON
+   ========================================================= */
+
+voiceBtn.addEventListener(
+  "click",
+  () => {
+
+    if(isListening){
+
+      try{
+
+        recognition.stop();
+
+      }catch(error){
+
+        console.error(error);
+
+      }
+
+    }else{
+
+      startVoiceRecognition();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   VOICE OUTPUT
+   ========================================================= */
+
+function cleanTextForSpeech(text){
+
+  if(!text){
+
+    return "";
+
+  }
+
+
+  let clean =
+    String(text);
+
+
+  /*
+     إزالة أكواد Markdown
+  */
+
+  clean =
+    clean.replace(
+      /```[\s\S]*?```/g,
+      " "
+    );
+
+
+  clean =
+    clean.replace(
+      /`([^`]+)`/g,
+      "$1"
+    );
+
+
+  /*
+     إزالة الصور
+  */
+
+  clean =
+    clean.replace(
+      /!\[.*?\]\(.*?\)/g,
+      " "
+    );
+
+
+  /*
+     إزالة روابط Markdown
+  */
+
+  clean =
+    clean.replace(
+      /\[([^\]]+)\]\(.*?\)/g,
+      "$1"
+    );
+
+
+  /*
+     إزالة رموز Markdown
+  */
+
+  clean =
+    clean.replace(
+      /[*_~>#]/g,
+      ""
+    );
+
+
+  /*
+     تحويل الأسطر إلى فواصل
+  */
+
+  clean =
+    clean.replace(
+      /\n+/g,
+      ". "
+    );
+
+
+  /*
+     إزالة مسافات زائدة
+  */
+
+  clean =
+    clean.replace(
+      /\s+/g,
+      " "
+    );
+
+
+  return clean.trim();
+
+}
+
+
+/* =========================================================
+   SPEAK
+   ========================================================= */
+
+function speakText(text){
+
+  if(
+    !("speechSynthesis" in window)
+  ){
+
+    return;
+
+  }
+
+
+  const cleanText =
+    cleanTextForSpeech(text);
+
+
+  if(!cleanText){
+
+    return;
+
+  }
+
+
+  /*
+     إيقاف أي قراءة قديمة
+  */
+
+  window.speechSynthesis.cancel();
+
+
+  const utterance =
+    new SpeechSynthesisUtterance(
+      cleanText
+    );
+
+
+  /*
+     العربية
+  */
+
+  utterance.lang =
+    "ar-SA";
+
+
+  /*
+     السرعة
+  */
+
+  utterance.rate =
+    0.95;
+
+
+  /*
+     النبرة
+  */
+
+  utterance.pitch =
+    1;
+
+
+  /*
+     الصوت
+  */
+
+  utterance.volume =
+    1;
+
+
+  utterance.onstart =
+    () => {
+
+      isSpeaking =
+        true;
+
+
+      stopSpeechBtn.classList.add(
+        "visible"
+      );
+
+    };
+
+
+  utterance.onend =
+    () => {
+
+      isSpeaking =
+        false;
+
+
+      stopSpeechBtn.classList.remove(
+        "visible"
+      );
+
+    };
+
+
+  utterance.onerror =
+    () => {
+
+      isSpeaking =
+        false;
+
+
+      stopSpeechBtn.classList.remove(
+        "visible"
+      );
+
+    };
+
+
+  window.speechSynthesis.speak(
+    utterance
+  );
+
+}
+
+
+/* =========================================================
+   STOP SPEAKING
+   ========================================================= */
+
+function stopSpeaking(){
+
+  if(
+    "speechSynthesis" in window
+  ){
+
+    window.speechSynthesis.cancel();
+
+  }
+
+
+  isSpeaking =
+    false;
+
+
+  stopSpeechBtn.classList.remove(
+    "visible"
+  );
+
+}
+
+
+/* =========================================================
+   STOP SPEECH BUTTON
+   ========================================================= */
+
+stopSpeechBtn.addEventListener(
+  "click",
+  stopSpeaking
+);
+
+
+/* =========================================================
+   SIDEBAR
    ========================================================= */
 
 function openSidebar(){
@@ -2828,7 +3185,9 @@ function openSidebar(){
   );
 
 
-  if(window.innerWidth <= 760){
+  if(
+    window.innerWidth <= 760
+  ){
 
     sidebarOverlay.classList.add(
       "active"
@@ -2862,7 +3221,6 @@ function closeSidebar(){
 
 toggleSidebarBtn.addEventListener(
   "click",
-
   () => {
 
     if(
@@ -2873,8 +3231,7 @@ toggleSidebarBtn.addEventListener(
 
       openSidebar();
 
-    }
-    else{
+    }else{
 
       closeSidebar();
 
@@ -2895,7 +3252,7 @@ sidebarOverlay.addEventListener(
 
 
 /* =========================================================
-   SWIPE SIDEBAR
+   SIDEBAR SWIPE
    ========================================================= */
 
 let sidebarTouchStartX = 0;
@@ -2904,10 +3261,11 @@ let sidebarTouchStartY = 0;
 
 let sidebarTouchCurrentX = 0;
 
+let sidebarTouchCurrentY = 0;
+
 
 sidebar.addEventListener(
   "touchstart",
-
   e => {
 
     if(
@@ -2930,18 +3288,19 @@ sidebar.addEventListener(
     sidebarTouchCurrentX =
       sidebarTouchStartX;
 
-  },
 
+    sidebarTouchCurrentY =
+      sidebarTouchStartY;
+
+  },
   {
     passive:true
   }
-
 );
 
 
 sidebar.addEventListener(
   "touchmove",
-
   e => {
 
     if(
@@ -2956,18 +3315,19 @@ sidebar.addEventListener(
     sidebarTouchCurrentX =
       e.touches[0].clientX;
 
-  },
 
+    sidebarTouchCurrentY =
+      e.touches[0].clientY;
+
+  },
   {
     passive:true
   }
-
 );
 
 
 sidebar.addEventListener(
   "touchend",
-
   () => {
 
     if(
@@ -2986,14 +3346,10 @@ sidebar.addEventListener(
 
     const deltaY =
       Math.abs(
-        sidebarTouchStartY -
-        eventLastY()
+        sidebarTouchCurrentY -
+        sidebarTouchStartY
       );
 
-
-    /*
-       سحب القائمة إلى اليمين = إغلاق
-    */
 
     if(
       deltaX > 70 &&
@@ -3005,48 +3361,11 @@ sidebar.addEventListener(
     }
 
   }
-
-);
-
-
-/*
-   آخر Y للمساعدة في تحديد
-   اتجاه السحب
-*/
-
-let lastTouchY = 0;
-
-
-function eventLastY(){
-
-  return lastTouchY;
-
-}
-
-
-sidebar.addEventListener(
-  "touchmove",
-
-  e => {
-
-    if(e.touches.length){
-
-      lastTouchY =
-        e.touches[0].clientY;
-
-    }
-
-  },
-
-  {
-    passive:true
-  }
-
 );
 
 
 /* =========================================================
-   SWIPE FROM RIGHT EDGE TO OPEN
+   EDGE SWIPE TO OPEN
    ========================================================= */
 
 let edgeStartX = 0;
@@ -3056,7 +3375,6 @@ let edgeStartY = 0;
 
 document.addEventListener(
   "touchstart",
-
   e => {
 
     if(
@@ -3083,11 +3401,6 @@ document.addEventListener(
       e.touches[0];
 
 
-    /*
-       بداية اللمس يجب أن تكون
-       قريبة من الحافة اليمنى
-    */
-
     if(
       touch.clientX >
       window.innerWidth - 35
@@ -3096,11 +3409,11 @@ document.addEventListener(
       edgeStartX =
         touch.clientX;
 
+
       edgeStartY =
         touch.clientY;
 
-    }
-    else{
+    }else{
 
       edgeStartX =
         0;
@@ -3108,17 +3421,14 @@ document.addEventListener(
     }
 
   },
-
   {
     passive:true
   }
-
 );
 
 
 document.addEventListener(
   "touchend",
-
   e => {
 
     if(
@@ -3153,10 +3463,6 @@ document.addEventListener(
       );
 
 
-    /*
-       من الحافة اليمنى نحو اليسار
-    */
-
     if(
       deltaX > 70 &&
       deltaY < 100
@@ -3171,11 +3477,9 @@ document.addEventListener(
       0;
 
   },
-
   {
     passive:true
   }
-
 );
 
 
@@ -3197,8 +3501,7 @@ function getSavedConversations(){
       )
     ) || [];
 
-  }
-  catch(error){
+  }catch(error){
 
     console.error(
       "Conversation storage error:",
@@ -3225,8 +3528,7 @@ function saveConversations(
       )
     );
 
-  }
-  catch(error){
+  }catch(error){
 
     console.error(
       "Could not save conversations:",
@@ -3324,8 +3626,7 @@ function saveCurrentConversation(){
     ] =
       conversation;
 
-  }
-  else{
+  }else{
 
     conversations.unshift(
       conversation
@@ -3335,7 +3636,7 @@ function saveCurrentConversation(){
 
 
   /*
-     الاحتفاظ بآخر 30 محادثة
+     آخر 30 محادثة
   */
 
   const limited =
@@ -3374,7 +3675,6 @@ function renderConversationList(){
   ){
 
     conversationsList.innerHTML =
-
       '<div class="empty-hint">لا توجد محادثات سابقة</div>';
 
     return;
@@ -3456,7 +3756,6 @@ function renderConversationList(){
 
       deleteBtn.addEventListener(
         "click",
-
         e => {
 
           e.stopPropagation();
@@ -3467,7 +3766,6 @@ function renderConversationList(){
           );
 
         }
-
       );
 
 
@@ -3475,11 +3773,9 @@ function renderConversationList(){
         icon
       );
 
-
       item.appendChild(
         title
       );
-
 
       item.appendChild(
         deleteBtn
@@ -3488,7 +3784,6 @@ function renderConversationList(){
 
       item.addEventListener(
         "click",
-
         () => {
 
           loadConversation(
@@ -3496,7 +3791,6 @@ function renderConversationList(){
           );
 
         }
-
       );
 
 
@@ -3535,9 +3829,11 @@ function loadConversation(id){
 
 
   /*
-     منع addMessage من حفظ
-     الرسائل مرة ثانية
+     إيقاف الصوت عند فتح محادثة
   */
+
+  stopSpeaking();
+
 
   loadingConversation =
     true;
@@ -3632,11 +3928,6 @@ function deleteConversation(id){
   );
 
 
-  /*
-     إذا حذف المستخدم
-     المحادثة الحالية
-  */
-
   if(
     id ===
     currentConversationId
@@ -3659,14 +3950,43 @@ function deleteConversation(id){
 async function startNewConversation(){
 
   /*
-     حفظ المحادثة السابقة
+     إيقاف الصوت
+  */
+
+  stopSpeaking();
+
+
+  /*
+     إيقاف الاستماع
+  */
+
+  if(
+    isListening &&
+    recognition
+  ){
+
+    try{
+
+      recognition.stop();
+
+    }catch(error){
+
+      console.error(error);
+
+    }
+
+  }
+
+
+  /*
+     حفظ القديمة
   */
 
   saveCurrentConversation();
 
 
   /*
-     reset backend
+     Reset backend
   */
 
   try{
@@ -3678,8 +3998,7 @@ async function startNewConversation(){
       }
     );
 
-  }
-  catch(error){
+  }catch(error){
 
     console.error(
       "Reset error:",
@@ -3690,7 +4009,7 @@ async function startNewConversation(){
 
 
   /*
-     تنظيف المحادثة
+     تنظيف
   */
 
   chatInner.innerHTML =
@@ -3766,7 +4085,6 @@ resetBtn.addEventListener(
 
 input.addEventListener(
   "input",
-
   () => {
 
     input.style.height =
@@ -3780,7 +4098,6 @@ input.addEventListener(
       ) + "px";
 
   }
-
 );
 
 
@@ -3790,7 +4107,6 @@ input.addEventListener(
 
 input.addEventListener(
   "keydown",
-
   e => {
 
     if(
@@ -3805,7 +4121,6 @@ input.addEventListener(
     }
 
   }
-
 );
 
 
@@ -3815,7 +4130,6 @@ input.addEventListener(
 
 form.addEventListener(
   "submit",
-
   async e => {
 
     e.preventDefault();
@@ -3833,7 +4147,36 @@ form.addEventListener(
 
 
     /*
-       رسالة المستخدم
+       إذا كان الصوت يعمل أوقفه
+    */
+
+    stopSpeaking();
+
+
+    /*
+       إيقاف التسجيل
+    */
+
+    if(
+      isListening &&
+      recognition
+    ){
+
+      try{
+
+        recognition.stop();
+
+      }catch(error){
+
+        console.error(error);
+
+      }
+
+    }
+
+
+    /*
+       USER MESSAGE
     */
 
     addMessage(
@@ -3873,7 +4216,9 @@ form.addEventListener(
 
             body:
               JSON.stringify({
+
                 message:text
+
               })
 
           }
@@ -3892,20 +4237,26 @@ form.addEventListener(
         addMessage(
           data.error ||
           "حدث خطأ غير متوقع",
+
           "bot",
+
           true
         );
 
-      }
-      else{
+      }else{
 
         const result =
           addMessage(
+
             data.answer,
+
             "bot",
+
             false,
+
             data.image_url ||
             null
+
           );
 
 
@@ -3914,17 +4265,25 @@ form.addEventListener(
           data.sources
         );
 
+
+        /*
+           🔊 قراءة إجابة البوت
+        */
+
+        speakText(
+          data.answer
+        );
+
       }
 
 
       /*
-         حفظ المحادثة بعد الرد
+         حفظ المحادثة
       */
 
       saveCurrentConversation();
 
-    }
-    catch(error){
+    }catch(error){
 
       console.error(
         error
@@ -3943,8 +4302,7 @@ form.addEventListener(
 
       saveCurrentConversation();
 
-    }
-    finally{
+    }finally{
 
       sendBtn.disabled =
         false;
@@ -3955,7 +4313,6 @@ form.addEventListener(
     }
 
   }
-
 );
 
 
@@ -3989,7 +4346,6 @@ uploadZone.addEventListener(
 
 uploadZone.addEventListener(
   "dragover",
-
   e => {
 
     e.preventDefault();
@@ -3999,13 +4355,11 @@ uploadZone.addEventListener(
     );
 
   }
-
 );
 
 
 uploadZone.addEventListener(
   "dragleave",
-
   () => {
 
     uploadZone.classList.remove(
@@ -4013,13 +4367,11 @@ uploadZone.addEventListener(
     );
 
   }
-
 );
 
 
 uploadZone.addEventListener(
   "drop",
-
   e => {
 
     e.preventDefault();
@@ -4040,7 +4392,6 @@ uploadZone.addEventListener(
     }
 
   }
-
 );
 
 
@@ -4050,7 +4401,6 @@ uploadZone.addEventListener(
 
 fileInput.addEventListener(
   "change",
-
   () => {
 
     if(
@@ -4064,7 +4414,6 @@ fileInput.addEventListener(
     }
 
   }
-
 );
 
 
@@ -4079,7 +4428,7 @@ async function uploadFile(file){
 
 
   uploadZone.innerHTML =
-    `⏳ جارٍ معالجة: ${file.name}`;
+    `⏳ جارٍ معالجة: ${escapeHtml(file.name)}`;
 
 
   const formData =
@@ -4118,12 +4467,14 @@ async function uploadFile(file){
         "فشل رفع الملف"
       );
 
-    }
-    else{
+    }else{
 
       addMessage(
+
         `✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`,
+
         "bot"
+
       );
 
 
@@ -4131,8 +4482,7 @@ async function uploadFile(file){
 
     }
 
-  }
-  catch(error){
+  }catch(error){
 
     console.error(
       error
@@ -4143,8 +4493,7 @@ async function uploadFile(file){
       "تعذر رفع الملف"
     );
 
-  }
-  finally{
+  }finally{
 
     uploadZone.innerHTML =
       originalHTML;
@@ -4252,16 +4601,19 @@ async function loadDocuments(){
             try{
 
               await fetch(
+
                 `/api/documents/${doc.doc_id}`,
+
                 {
                   method:"DELETE"
                 }
+
               );
+
 
               loadDocuments();
 
-            }
-            catch(error){
+            }catch(error){
 
               console.error(
                 error
@@ -4284,8 +4636,7 @@ async function loadDocuments(){
       }
     );
 
-  }
-  catch(error){
+  }catch(error){
 
     console.error(
       error
@@ -4293,7 +4644,6 @@ async function loadDocuments(){
 
 
     docsList.innerHTML =
-
       '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
 
   }
@@ -4311,11 +4661,6 @@ function initializeSidebar(){
     window.innerWidth <= 760
   ){
 
-    /*
-       مهم جدًا:
-       لا تظهر القائمة عند الدخول
-    */
-
     sidebar.classList.add(
       "collapsed"
     );
@@ -4325,16 +4670,12 @@ function initializeSidebar(){
       "active"
     );
 
-  }
-  else{
-
-    /*
-       على الكمبيوتر تظهر القائمة
-    */
+  }else{
 
     sidebar.classList.remove(
       "collapsed"
     );
+
 
     sidebarOverlay.classList.remove(
       "active"
@@ -4351,22 +4692,11 @@ function initializeSidebar(){
 
 window.addEventListener(
   "resize",
-
   () => {
-
-    /*
-       عند الانتقال من Desktop
-       إلى Mobile
-    */
 
     if(
       window.innerWidth <= 760
     ){
-
-      /*
-         إذا لم تكن القائمة مفتوحة
-         تبقى مغلقة
-      */
 
       if(
         !sidebarOverlay.classList.contains(
@@ -4380,13 +4710,7 @@ window.addEventListener(
 
       }
 
-    }
-    else{
-
-      /*
-         على Desktop:
-         القائمة تظهر دائمًا
-      */
+    }else{
 
       sidebar.classList.remove(
         "collapsed"
@@ -4400,7 +4724,6 @@ window.addEventListener(
     }
 
   }
-
 );
 
 
@@ -4416,10 +4739,7 @@ loadDocuments();
 
 input.focus();
 
-
 </script>
 
-
 </body>
-
 </html>
