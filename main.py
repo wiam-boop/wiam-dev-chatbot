@@ -123,9 +123,9 @@ MAX_RAG_CONTEXT_CHARS = 6000
 
 MAX_USER_MESSAGE_CHARS = 6000
 
-MAX_RETRIES = 2
+MAX_RETRIES = 1
 
-MAX_RETRY_WAIT = 8
+MAX_RETRY_WAIT = 5
 
 
 # =========================================================
@@ -1038,7 +1038,7 @@ def rate_limit_user_message(error):
 # WEB SEARCH - TAVILY
 # =========================================================
 
-def search_web_tavily(query, max_results=5):
+def search_web_tavily(query, max_results=4):
     if not TAVILY_API_KEY:
         print("[WEB] TAVILY_API_KEY غير مضبوط")
         return []
@@ -1048,7 +1048,7 @@ def search_web_tavily(query, max_results=5):
             json={
                 "api_key": TAVILY_API_KEY,
                 "query": query,
-                "search_depth": "advanced",
+                "search_depth": "basic",
                 "include_answer": False,
                 "include_raw_content": False,
                 "max_results": max_results
@@ -1654,12 +1654,15 @@ def chat():
             )
         })
 
-        sources_used = sorted({
+        # لا نستبدل مصادر Tavily بمصادر RAG إذا كان البحث الويب هو المستخدم.
+        rag_sources = sorted({
             r["source"]
             for r in results
             if isinstance(r, dict)
             and r.get("source")
         })
+        if not web_results:
+            sources_used = rag_sources
 
     # =====================================================
     # 7. CURRENT USER MESSAGE
@@ -1696,7 +1699,7 @@ def chat():
                     answer_parts.append(content)
 
             if answer_parts:
-                answer = "\n\n".join(answer_parts)
+                answer = "\n\n".join(answer_parts)[:6000]
                 image_url = None
                 used_model = "tavily-fallback"
                 sources_used = [
