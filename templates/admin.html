@@ -525,11 +525,8 @@
             word-break: break-word;
         }
 
-        .message.user
-        .message-content {
-
-            background:
-                rgba(108,92,231,.12);
+        .message.user .message-content {
+            background: transparent;
         }
 
         .message img {
@@ -1382,9 +1379,7 @@ function renderMessages(
                     </div>
 
                     <div class="message-content">
-                        ${escapeHtml(
-                            message.content
-                        )}
+                        ${renderMarkdown(message.content)}
                     </div>
 
                     ${imageHtml}
