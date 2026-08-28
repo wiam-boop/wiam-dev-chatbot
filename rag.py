@@ -18,8 +18,30 @@ from PIL import Image
 import pytesseract
 
 # ─── مسار التخزين ───
-IS_RAILWAY  = os.environ.get("RAILWAY_ENVIRONMENT") is not None
-STORAGE_DIR = "/tmp/storage" if IS_RAILWAY else os.path.join(os.path.dirname(os.path.abspath(__file__)), "storage")
+IS_RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+
+# STORAGE_DIR قابل للضبط عبر متغير بيئة STORAGE_PATH.
+# على Railway: أنشئي Volume من تبويب Variables/Volumes في الخدمة،
+# اربطيه بمسار مثل /data، وضعي STORAGE_PATH=/data في Environment Variables.
+# بدون هذا الضبط، سيُستعمل /tmp/storage كحل احتياطي فقط —
+# وهو غير دائم ويُمسح مع كل إعادة نشر/تشغيل على Railway.
+_env_storage_path = os.environ.get("STORAGE_PATH", "").strip()
+
+if _env_storage_path:
+    STORAGE_DIR = _env_storage_path
+elif IS_RAILWAY:
+    STORAGE_DIR = "/tmp/storage"
+    print(
+        "[تحذير] STORAGE_PATH غير مضبوط على Railway. "
+        "سيتم استخدام /tmp/storage وهو غير دائم "
+        "(ستُفقد الملفات والفهرس مع كل إعادة نشر). "
+        "أضيفي Volume دائم واضبطي STORAGE_PATH لتفادي فقدان البيانات."
+    )
+else:
+    STORAGE_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "storage"
+    )
+
 UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
 INDEX_PATH  = os.path.join(STORAGE_DIR, "kb.index")
 META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")

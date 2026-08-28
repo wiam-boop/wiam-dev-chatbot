@@ -16,10 +16,21 @@ if DATABASE_URL.startswith("postgres://"):
 
 USE_POSTGRES = bool(DATABASE_URL)
 
+# مسار ملف SQLite (يُستعمل فقط إذا لم يُضبط DATABASE_URL أي Postgres).
+# نفس منطق rag.py: إذا كان STORAGE_PATH مضبوطاً (Volume دائم على Railway)
+# نحفظ ملف قاعدة البيانات بداخله بدل مسار نسبي غير دائم.
+_env_storage_path = os.environ.get("STORAGE_PATH", "").strip()
+
+if _env_storage_path:
+    os.makedirs(_env_storage_path, exist_ok=True)
+    SQLITE_PATH = os.path.join(_env_storage_path, "chat_logs.db")
+else:
+    SQLITE_PATH = "chat_logs.db"
+
 
 def _get_sqlite_connection():
     conn = sqlite3.connect(
-        "chat_logs.db",
+        SQLITE_PATH,
         timeout=30,
         check_same_thread=False
     )

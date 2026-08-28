@@ -6,7 +6,7 @@ import hmac
 import time
 import urllib.parse
 
-from flask import Flask, request, jsonify, session, render_template
+from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -1705,6 +1705,22 @@ def chat():
 
 
 # =========================================================
+# SERVE UPLOADED FILES
+# =========================================================
+
+@app.route(
+    "/uploads/<path:filename>",
+    methods=["GET"]
+)
+def serve_uploaded_file(filename):
+
+    return send_from_directory(
+        rag.UPLOADS_DIR,
+        filename
+    )
+
+
+# =========================================================
 # UPLOAD
 # =========================================================
 
@@ -1777,6 +1793,37 @@ def upload():
             "error":
                 f"فشل معالجة الملف: {str(e)}"
         }), 500
+
+    chat_session_id = get_chat_session_id()
+
+    is_image = ext in {
+        ".png", ".jpg", ".jpeg", ".webp", ".bmp"
+    }
+
+    image_url_for_admin = None
+
+    if is_image:
+
+        image_url_for_admin = (
+            request.host_url.rstrip("/")
+            + "/uploads/"
+            + os.path.basename(file_path)
+        )
+
+    try:
+
+        database.save_message(
+            chat_session_id,
+            "user",
+            f"📎 تم رفع ملف: {file.filename}",
+            image_url=image_url_for_admin
+        )
+
+    except Exception as e:
+
+        print(
+            f"[DATABASE ERROR - UPLOAD] {e}"
+        )
 
     return jsonify({
         "status": "ok",
