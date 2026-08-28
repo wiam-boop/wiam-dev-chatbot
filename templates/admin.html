@@ -514,19 +514,162 @@
 
             border-radius: 12px;
 
-            padding: 12px 14px;
+            padding: 14px 16px;
 
-            line-height: 1.8;
+            line-height: 1.75;
 
             font-size: 14px;
 
-            white-space: pre-wrap;
-
             word-break: break-word;
+
+            overflow-wrap: anywhere;
+
         }
 
-        .message.user .message-content {
+        /* ChatGPT / GitHub-style rendered Markdown */
+
+        .message-content p {
+            margin: 0 0 12px;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-content h1,
+        .message-content h2,
+        .message-content h3,
+        .message-content h4,
+        .message-content h5,
+        .message-content h6 {
+            margin: 20px 0 10px;
+            line-height: 1.35;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .message-content h1 {
+            font-size: 1.65em;
+        }
+
+        .message-content h2 {
+            font-size: 1.4em;
+        }
+
+        .message-content h3 {
+            font-size: 1.2em;
+        }
+
+        .message-content h4,
+        .message-content h5,
+        .message-content h6 {
+            font-size: 1.05em;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 8px 0 14px;
+            padding-right: 25px;
+        }
+
+        .message-content li {
+            margin: 5px 0;
+        }
+
+        .message-content blockquote {
+            margin: 12px 0;
+            padding: 8px 14px;
+            border-right: 3px solid var(--accent);
+            background: rgba(255,255,255,.035);
+            color: #c9c9d0;
+            border-radius: 4px;
+        }
+
+        .message-content code {
+            direction: ltr;
+            unicode-bidi: plaintext;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 5px;
+            padding: 2px 5px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: .9em;
+        }
+
+        .message-content pre {
+            direction: ltr;
+            text-align: left;
+            margin: 14px 0;
+            padding: 14px 16px;
+            background: #171719;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.55;
+        }
+
+        .message-content pre code {
             background: transparent;
+            border: 0;
+            padding: 0;
+            border-radius: 0;
+            color: #e8e8e8;
+            font-size: 13px;
+        }
+
+        .message-content a {
+            color: #8f85ff;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .message-content strong {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .message-content em {
+            font-style: italic;
+        }
+
+        .message-content hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 18px 0;
+        }
+
+        .message-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .message-content th,
+        .message-content td {
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            text-align: right;
+        }
+
+        .message-content th {
+            background: rgba(255,255,255,.06);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .message-content img {
+            max-width: 100%;
+        }
+
+        .message.user
+        .message-content {
+
+            background:
+                rgba(108,92,231,.12);
         }
 
         .message img {
@@ -894,6 +1037,277 @@ function escapeHtml(text) {
                 "'": "&#039;"
             })[char]
         );
+}
+
+
+/* =====================================================
+   MARKDOWN -> HTML
+   =====================================================
+
+   الهدف هنا هو عرض النص مثل ChatGPT / GitHub:
+   - ### لا تظهر كنص
+   - # العناوين تتحول إلى عناوين HTML
+   - **غامق** و *مائل*
+   - القوائم
+   - الاقتباسات
+   - الروابط
+   - الجداول
+   - الأكواد inline و code blocks
+   - الحفاظ على أمان HTML القادم من المستخدم
+*/
+
+function renderMarkdown(text) {
+
+    let source = String(text ?? "")
+        .replace(/\\r\\n/g, "\\n")
+        .replace(/\\r/g, "\\n");
+
+    const codeBlocks = [];
+
+    source = source.replace(
+        /```([\\w+-]*)\\n?([\\s\\S]*?)```/g,
+        (match, language, code) => {
+
+            const index = codeBlocks.length;
+
+            codeBlocks.push(
+                `<pre><code class="language-${escapeHtml(
+                    language || ""
+                )}">${escapeHtml(
+                    code.replace(/^\\n|\\n$/g, "")
+                )}</code></pre>`
+            );
+
+            return `\\n@@CODE_BLOCK_${index}@@\\n`;
+        }
+    );
+
+    source = escapeHtml(source);
+
+    // Restore fenced code blocks after escaping.
+    source = source.replace(
+        /@@CODE_BLOCK_(\\d+)@@/g,
+        (_, index) => codeBlocks[Number(index)]
+    );
+
+    // Tables
+    source = renderMarkdownTables(source);
+
+    // Headings: ### Title -> <h3>Title</h3>
+    source = source.replace(
+        /^######\\s+(.+)$/gm,
+        "<h6>$1</h6>"
+    );
+
+    source = source.replace(
+        /^#####\\s+(.+)$/gm,
+        "<h5>$1</h5>"
+    );
+
+    source = source.replace(
+        /^####\\s+(.+)$/gm,
+        "<h4>$1</h4>"
+    );
+
+    source = source.replace(
+        /^###\\s+(.+)$/gm,
+        "<h3>$1</h3>"
+    );
+
+    source = source.replace(
+        /^##\\s+(.+)$/gm,
+        "<h2>$1</h2>"
+    );
+
+    source = source.replace(
+        /^#\\s+(.+)$/gm,
+        "<h1>$1</h1>"
+    );
+
+    // Horizontal rules
+    source = source.replace(
+        /^\\s*(?:---|___|\\*\\*\\*)\\s*$/gm,
+        "<hr>"
+    );
+
+    // Blockquotes
+    source = source.replace(
+        /^>\\s?(.*)$/gm,
+        "<blockquote>$1</blockquote>"
+    );
+
+    // Unordered lists
+    source = source.replace(
+        /(?:^|\\n)((?:[ \\t]*[-*+]\\s+.+(?:\\n|$))+)/g,
+        (match, list) => {
+
+            const items = list
+                .trim()
+                .split(/\\n/)
+                .map(line =>
+                    line.replace(
+                        /^[ \\t]*[-*+]\\s+/,
+                        ""
+                    )
+                )
+                .map(item => `<li>${item}</li>`)
+                .join("");
+
+            return `\\n<ul>${items}</ul>\\n`;
+        }
+    );
+
+    // Ordered lists
+    source = source.replace(
+        /(?:^|\\n)((?:[ \\t]*\\d+[.)]\\s+.+(?:\\n|$))+)/g,
+        (match, list) => {
+
+            const items = list
+                .trim()
+                .split(/\\n/)
+                .map(line =>
+                    line.replace(
+                        /^[ \\t]*\\d+[.)]\\s+/,
+                        ""
+                    )
+                )
+                .map(item => `<li>${item}</li>`)
+                .join("");
+
+            return `\\n<ol>${items}</ol>\\n`;
+        }
+    );
+
+    // Images
+    source = source.replace(
+        /!\\[([^\\]]*)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g,
+        '<img src="$2" alt="$1" loading="lazy">'
+    );
+
+    // Links
+    source = source.replace(
+        /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+    // Inline code
+    source = source.replace(
+        /`([^`\\n]+)`/g,
+        "<code>$1</code>"
+    );
+
+    // Bold + italic
+    source = source.replace(
+        /\\*\\*(.+?)\\*\\*/g,
+        "<strong>$1</strong>"
+    );
+
+    source = source.replace(
+        /__(.+?)__/g,
+        "<strong>$1</strong>"
+    );
+
+    source = source.replace(
+        /(?<!\\*)\\*([^\\n*]+?)\\*(?!\\*)/g,
+        "<em>$1</em>"
+    );
+
+    source = source.replace(
+        /(?<!_)_([^\\n_]+?)_(?!_)/g,
+        "<em>$1</em>"
+    );
+
+    // Paragraphs / line breaks.
+    const blocks = source
+        .split(/\\n{2,}/)
+        .map(block => block.trim())
+        .filter(Boolean)
+        .map(block => {
+
+            if (
+                /^<(?:h[1-6]|ul|ol|blockquote|pre|hr|table|img)/i.test(block)
+            ) {
+                return block;
+            }
+
+            return `<p>${block.replace(/\\n/g, "<br>")}</p>`;
+        });
+
+    return blocks.join("");
+}
+
+
+function renderMarkdownTables(text) {
+
+    const lines = text.split("\\n");
+    const output = [];
+
+    for (let i = 0; i < lines.length; i++) {
+
+        if (
+            i + 1 < lines.length &&
+            /^\\s*\\|?\\s*:?-{3,}:?\\s*(?:\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$/.test(
+                lines[i + 1]
+            ) &&
+            lines[i].includes("|")
+        ) {
+
+            const headerCells =
+                splitMarkdownTableRow(lines[i]);
+
+            i++;
+
+            const rows = [];
+
+            while (
+                i + 1 < lines.length &&
+                lines[i + 1].includes("|") &&
+                lines[i + 1].trim() !== ""
+            ) {
+
+                i++;
+
+                rows.push(
+                    splitMarkdownTableRow(lines[i])
+                );
+            }
+
+            const headHtml = headerCells
+                .map(cell => `<th>${cell}</th>`)
+                .join("");
+
+            const bodyHtml = rows
+                .map(row =>
+                    `<tr>${
+                        row
+                            .map(cell => `<td>${cell}</td>`)
+                            .join("")
+                    }</tr>`
+                )
+                .join("");
+
+            output.push(
+                `<table><thead><tr>${headHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`
+            );
+
+            continue;
+        }
+
+        output.push(lines[i]);
+    }
+
+    return output.join("\\n");
+}
+
+
+function splitMarkdownTableRow(line) {
+
+    return line
+        .trim()
+        .replace(/^\\|/, "")
+        .replace(/\\|$/, "")
+        .split("|")
+        .map(cell => cell.trim());
 }
 
 
@@ -1379,7 +1793,9 @@ function renderMessages(
                     </div>
 
                     <div class="message-content">
-                        ${renderMarkdown(message.content)}
+                        ${renderMarkdown(
+                            message.content
+                        )}
                     </div>
 
                     ${imageHtml}
