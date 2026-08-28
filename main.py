@@ -493,14 +493,59 @@ def normalize_text(text: str) -> str:
     return text.strip()
 
 
+def _text_similarity(a: str, b: str) -> float:
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, normalize_text(a), normalize_text(b), autojunk=False).ratio()
+
+
 def is_greeting(message: str) -> bool:
     text = normalize_text(message)
-    greetings = {
+    if not text or len(text) > 24:
+        return False
+
+    greetings = [
         "hi", "hello", "hey", "hii", "helo", "bonjour",
-        "مرحبا", "مرحبا بك", "اهلا", "اهلا بك", "أهلا",
-        "السلام عليكم", "سلام", "مرحباً", "مراحب"
-    }
-    return text in greetings
+        "مرحبا", "مرحبا بك", "اهلا", "اهلا بك",
+        "السلام عليكم", "سلام", "مراحب", "صباح الخير", "مساء الخير"
+    ]
+
+    # Exact match first.
+    if text in greetings:
+        return True
+
+    # Small typo tolerance for short greetings only.
+    # This catches examples such as: مرحسا / مرهيا / هلاا / helo.
+    for greeting in greetings:
+        g = normalize_text(greeting)
+        if len(text) <= 8 and len(g) <= 8 and _text_similarity(text, g) >= 0.78:
+            return True
+
+    return False
+
+
+def is_casual_conversation(message: str) -> bool:
+    """
+    Detect ordinary conversation that must NOT trigger RAG/Web.
+    It is intentionally conservative: factual questions continue to
+    the normal Memory -> RAG -> Web -> Gemini pipeline.
+    """
+    text = normalize_text(message)
+    if not text:
+        return False
+
+    patterns = [
+        "كيف حالك", "كيفك", "شلونك", "شخبارك", "شو اخبارك",
+        "ماذا تفعل", "شو بتعمل", "وش تسوي",
+        "هل انت بخير", "انت بخير",
+        "هل انت غبي", "هل انت احمق", "هل انت احمق",
+        "انت غبي", "انت احمق", "يا غبي", "يا احمق",
+        "احمق", "غبي", "ممل", "شكرا", "شكرا لك",
+        "thanks", "thank you", "how are you", "how r u",
+        "what are you doing", "are you okay", "are you stupid",
+        "are you dumb", "you are stupid", "you are dumb"
+    ]
+
+    return any(pattern in text for pattern in patterns)
 
 
 def greeting_answer(message: str) -> str:
@@ -1071,6 +1116,38 @@ def search_web_tavily(query, max_results=4):
         return []
 
 
+def search_web_tavily_answer(query):
+    """Ask Tavily for a concise fallback answer, never raw search-page text."""
+    if not TAVILY_API_KEY:
+        return None, []
+
+    try:
+        response = requests.post(
+            TAVILY_SEARCH_URL,
+            json={
+                "api_key": TAVILY_API_KEY,
+                "query": query,
+                "search_depth": "basic",
+                "include_answer": True,
+                "include_raw_content": False,
+                "max_results": 3
+            },
+            timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+        answer = (data.get("answer") or "").strip()
+        urls = [
+            item.get("url")
+            for item in data.get("results", [])
+            if item.get("url")
+        ]
+        return answer or None, urls
+    except Exception as e:
+        print(f"[WEB ANSWER ERROR] {e}")
+        return None, []
+
+
 # =========================================================
 # CALL MODEL WITH RETRY
 # =========================================================
@@ -1551,6 +1628,64 @@ def chat():
         })
 
     # =====================================================
+    # 4.5 CASUAL CONVERSATION
+    # لا RAG ولا Web للمحادثة اليومية.
+    # =====================================================
+    if is_casual_conversation(user_message):
+        messages = session.get(
+            "messages",
+            [{"role": "system", "content": SYSTEM_PROMPT}]
+        )
+        outgoing_messages = build_optimized_history(messages)
+        outgoing_messages.append({
+            "role": "user",
+            "content": user_message
+        })
+
+        try:
+            answer, image_url, used_model = call_gemini_with_fallback(
+                outgoing_messages,
+                allow_image_tool=is_image_request(user_message)
+            )
+        except Exception as e:
+            print(f"[CASUAL MODEL ERROR] {e}")
+            if is_rate_limit_error(e):
+                return jsonify({
+                    "error": rate_limit_user_message(e),
+                    "rate_limited": True
+                }), 429
+            return jsonify({
+                "error": "تعذر الاتصال مؤقتًا بخدمة الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.",
+                "temporary_error": True
+            }), 503
+
+        save_chat_to_session(user_message, answer)
+        try:
+            database.save_message(chat_session_id, "user", user_message)
+            database.save_message(
+                chat_session_id,
+                "assistant",
+                answer,
+                image_url=image_url,
+                sources=[]
+            )
+        except Exception as e:
+            print(f"[DATABASE ERROR - CASUAL] {e}")
+
+        result = {
+            "answer": answer,
+            "sources": [],
+            "memory_hit": False,
+            "web_searched": False,
+            "learned": False,
+            "model": used_model
+        }
+        if image_url:
+            result["image_url"] = image_url
+        print("[LOCAL/CHAT] no RAG / no Web")
+        return jsonify(result)
+
+    # =====================================================
     # 5. GET HISTORY
     # =====================================================
 
@@ -1601,7 +1736,7 @@ def chat():
     # 6. WEB FALLBACK
     # =====================================================
     web_results = []
-    rag_threshold = float(os.environ.get("RAG_THRESHOLD", "0.55"))
+    rag_threshold = max(0.65, float(os.environ.get("RAG_THRESHOLD", "0.65")))
     strong_rag = bool(
         results
         and float(results[0].get("score", 0)) >= rag_threshold
@@ -1686,31 +1821,16 @@ def chat():
     except Exception as e:
         print(f"[MODEL FALLBACK ERROR] {e}")
 
-        # إذا فشل Gemini الأساسي والاحتياطي، استخدم Tavily كحل أخير.
-        # لا نفعل ذلك للتحيات لأنها عولجت محليًا أعلاه.
-        if not web_results:
-            web_results = search_web_tavily(user_message)
+        # إذا فشل Gemini الأساسي والاحتياطي، استخدم إجابة Tavily المختصرة
+        # كحل أخير، ولا نعرض محتوى صفحات الويب الخام للمستخدم.
+        tavily_answer, tavily_urls = search_web_tavily_answer(user_message)
 
-        if web_results:
-            answer_parts = []
-            for item in web_results[:3]:
-                content = (item.get("content") or "").strip()
-                if content:
-                    answer_parts.append(content)
-
-            if answer_parts:
-                answer = "\n\n".join(answer_parts)[:6000]
-                image_url = None
-                used_model = "tavily-fallback"
-                sources_used = [
-                    item["url"] for item in web_results if item.get("url")
-                ]
-                print("[TAVILY FALLBACK] Gemini unavailable; using web results")
-            else:
-                return jsonify({
-                    "error": "تعذر الحصول على إجابة الآن من Gemini أو البحث على الويب. يرجى المحاولة بعد قليل.",
-                    "temporary_error": True
-                }), 503
+        if tavily_answer:
+            answer = tavily_answer[:5000]
+            image_url = None
+            used_model = "tavily-fallback"
+            sources_used = tavily_urls
+            print("[TAVILY FALLBACK] Gemini unavailable; using Tavily concise answer")
         else:
             session["messages"] = build_optimized_history(messages)
             if is_rate_limit_error(e):
