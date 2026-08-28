@@ -1995,6 +1995,59 @@ form#chatForm:focus-within{
 
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+/* =========================================================
+   MARKDOWN STYLES
+   ========================================================= */
+.msg-content h1,.msg-content h2,.msg-content h3,
+.msg-content h4,.msg-content h5,.msg-content h6{
+  margin:12px 0 6px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text-primary);
+}
+.msg-content h1{font-size:1.3em;}
+.msg-content h2{font-size:1.15em;}
+.msg-content h3{font-size:1.05em;}
+.msg-content p{margin:6px 0;line-height:1.7;}
+.msg-content ul,.msg-content ol{
+  padding-right:20px;
+  margin:6px 0;
+}
+.msg-content li{margin:4px 0;line-height:1.6;}
+.msg-content table{
+  border-collapse:collapse;
+  width:100%;
+  margin:10px 0;
+  font-size:13px;
+}
+.msg-content th,.msg-content td{
+  border:1px solid var(--border);
+  padding:8px 12px;
+  text-align:right;
+}
+.msg-content th{
+  background:var(--bg-elevated);
+  font-weight:700;
+}
+.msg-content tr:nth-child(even){
+  background:rgba(255,255,255,.03);
+}
+.msg-content blockquote{
+  border-right:3px solid var(--accent);
+  padding:8px 12px;
+  margin:8px 0;
+  background:var(--accent-soft);
+  border-radius:4px;
+  color:var(--text-secondary);
+}
+.msg-content a{color:var(--accent);text-decoration:none;}
+.msg-content a:hover{text-decoration:underline;}
+.msg-content hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.msg-content strong{font-weight:700;color:var(--text-primary);}
+.msg-content em{font-style:italic;}
+</style>
 </head>
 
 
@@ -2366,42 +2419,19 @@ function escapeHtml(str){
 
 function renderMarkdown(text){
 
-  let html =
-    escapeHtml(text);
+  if(!text) return "";
 
+  // إعداد marked.js
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+  });
 
-  html =
-    html.replace(
-      /```([\s\S]*?)```/g,
-
-      (m, code) =>
-        `<pre><code>${code.trim()}</code></pre>`
-
-    );
-
-
-  html =
-    html.replace(
-      /`([^`]+)`/g,
-      '<code>$1</code>'
-    );
-
-
-  html =
-    html.replace(
-      /\*\*([^*]+)\*\*/g,
-      '<strong>$1</strong>'
-    );
-
-
-  html =
-    html.replace(
-      /\n/g,
-      '<br>'
-    );
-
-
-  return html;
+  try {
+    return marked.parse(String(text));
+  } catch(e) {
+    return escapeHtml(text).replace(/\n/g, "<br>");
+  }
 
 }
 
