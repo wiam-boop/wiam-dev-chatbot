@@ -76,27 +76,27 @@ def is_admin():
 
 
 # =========================================================
-# GROQ
+# GEMINI (عبر واجهة متوافقة مع OpenAI)
 # =========================================================
 
-GROQ_API_KEY = os.environ.get(
-    "GROQ_API_KEY"
+GEMINI_API_KEY = os.environ.get(
+    "GEMINI_API_KEY"
 )
 
-if not GROQ_API_KEY:
+if not GEMINI_API_KEY:
     raise RuntimeError(
-        "لم يتم العثور على GROQ_API_KEY. "
-        "أنشئ متغير GROQ_API_KEY في Railway."
+        "لم يتم العثور على GEMINI_API_KEY. "
+        "أنشئ متغير GEMINI_API_KEY في Railway."
     )
 
 
 client = OpenAI(
-    api_key=GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1"
+    api_key=GEMINI_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
 
-MODEL_NAME = "openai/gpt-oss-120b"
+MODEL_NAME = "gemini-2.5-flash"
 
 
 # =========================================================
@@ -894,7 +894,7 @@ def chat():
 
     # =====================================================
     # MODEL QUESTION
-    # لا يحتاج إلى Groq
+    # لا يحتاج إلى استدعاء النموذج
     # =====================================================
 
     if is_model_question(
@@ -990,7 +990,7 @@ def chat():
 
     # =====================================================
     # WIAM DEV IDENTITY
-    # لا يحتاج إلى Groq
+    # لا يحتاج إلى استدعاء النموذج
     # =====================================================
 
     if is_wiam_dev_identity_question(
