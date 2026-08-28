@@ -1,3 +1,11 @@
+"""Lightweight long-term knowledge memory.
+
+- Uses the same embedding model as rag.py (no second Transformer model).
+- Handles Arabic normalization, typos and rephrased questions.
+- Stores durable knowledge in the existing PostgreSQL/SQLite database.
+- Does not call the Web; main.py decides when Web is allowed.
+"""
+
 import os
 import re
 import threading
@@ -9,22 +17,42 @@ import database
 import rag
 
 DEFAULT_THRESHOLD = float(os.environ.get("MEMORY_THRESHOLD", "0.64"))
+FUZZY_THRESHOLD = float(os.environ.get("MEMORY_FUZZY_THRESHOLD", "0.86"))
+SEMANTIC_THRESHOLD = float(os.environ.get("MEMORY_SEMANTIC_THRESHOLD", "0.78"))
+COMBINED_THRESHOLD = float(os.environ.get("MEMORY_COMBINED_THRESHOLD", "0.74"))
+
 _lock = threading.Lock()
 
 
-def _normalize(text):
-    """تطبيع بسيط للعربية والإنجليزية لمقاومة الأخطاء الإملائية الشكلية."""
+def normalize_text(text):
     text = str(text or "").strip().lower()
     text = re.sub(r"[ًٌٍَُِّْـ]", "", text)
     text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
     text = text.replace("ى", "ي").replace("ة", "ه")
     text = text.replace("ؤ", "و").replace("ئ", "ي")
-    text = re.sub(r"[؟?!.,،؛:;\-_/\\]+", " ", text)
+    text = text.replace("گ", "ك").replace("ڨ", "ق")
+    text = re.sub(r"[؟?!.,،؛:;\-_\/\\]+", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
-def _similarity(a, b):
+def text_similarity(a, b):
+    return SequenceMatcher(None, normalize_text(a), normalize_text(b)).ratio()
+
+
+def token_similarity(a, b):
+    aa = normalize_text(a).split()
+    bb = normalize_text(b).split()
+    if not aa or not bb:
+        return 0.0
+    # Character-level similarity plus token overlap makes short Arabic typo
+    # questions much more robust than embeddings alone.
+    sa, sb = set(aa), set(bb)
+    overlap = len(sa & sb) / max(1, len(sa | sb))
+    return 0.65 * text_similarity(a, b) + 0.35 * overlap
+
+
+def cosine(a, b):
     a = np.asarray(a, dtype=np.float32)
     b = np.asarray(b, dtype=np.float32)
     if a.size == 0 or b.size == 0 or a.shape != b.shape:
@@ -36,16 +64,19 @@ def _similarity(a, b):
     return float(np.dot(a, b) / (na * nb))
 
 
-def _text_similarity(a, b):
-    return SequenceMatcher(None, _normalize(a), _normalize(b)).ratio()
-
-
 class LearnedMemory:
-    """ذاكرة معرفة دائمة وخفيفة لا تحتاج نموذج Transformer أو GPU."""
+    """Persistent semantic memory with typo/paraphrase matching."""
 
     def __init__(self, threshold=None):
         self.threshold = float(threshold if threshold is not None else DEFAULT_THRESHOLD)
-        print(f"[MEMORY] threshold={self.threshold}")
+        print(
+            f"[MEMORY] threshold={self.threshold} "
+            f"fuzzy={FUZZY_THRESHOLD} semantic={SEMANTIC_THRESHOLD}"
+        )
+
+    def _embed(self, texts):
+        # Reuse rag.py's single embedding model. This is important on Railway.
+        return rag._get_embeddings([normalize_text(x) for x in texts])
 
     def search(self, question, threshold=None):
         question = str(question or "").strip()
@@ -60,79 +91,138 @@ class LearnedMemory:
                 print("[MEMORY MISS] empty")
                 return None
 
-            # نعيد إنشاء المتجهات من الأسئلة نفسها حتى تعمل الذاكرة أيضًا
-            # مع سجلات قديمة كانت محفوظة بمتجهات 384-dim.
-            normalized_question = _normalize(question)
-            questions = [item.get("question", "") for item in rows]
-            vectors = rag._get_embeddings([normalized_question] + [_normalize(q) for q in questions])
-            query_vector = vectors[0]
-
+            query_vector = self._embed([question])[0]
             best = None
-            for idx, item in enumerate(rows, start=1):
-                vector_score = _similarity(query_vector, vectors[idx])
-                fuzzy_score = _text_similarity(question, item.get("question", ""))
 
-                # المزج يجعل المطابقة مقاومة للأخطاء الإملائية وإعادة الصياغة
-                # البسيطة، مع بقاء التشابه الدلالي الحرفي هو العامل الأكبر.
-                score = (0.78 * vector_score) + (0.22 * fuzzy_score)
+            for item in rows:
+                stored_question = item.get("question", "")
+                semantic = cosine(query_vector, item.get("embedding", []))
+                fuzzy = text_similarity(question, stored_question)
+                token = token_similarity(question, stored_question)
 
-                candidate = {
-                    "id": item["id"],
-                    "question": item["question"],
-                    "answer": item["answer"],
-                    "source": item.get("source", "unknown"),
-                    "source_urls": item.get("source_urls", []),
+                # For short Arabic questions, fuzzy similarity is intentionally
+                # important. For genuine paraphrases, semantic similarity wins.
+                combined = 0.45 * semantic + 0.40 * fuzzy + 0.15 * token
+                score = max(combined, fuzzy if fuzzy >= 0.92 else 0.0)
+
+                candidate = dict(item)
+                candidate.update({
                     "score": float(score),
-                    "vector_score": float(vector_score),
-                    "fuzzy_score": float(fuzzy_score),
-                    "created_at": item.get("created_at"),
-                    "updated_at": item.get("updated_at"),
-                }
+                    "semantic_score": float(semantic),
+                    "fuzzy_score": float(fuzzy),
+                    "token_score": float(token),
+                })
+
                 if best is None or candidate["score"] > best["score"]:
                     best = candidate
 
-            if best and best["score"] >= threshold:
+            if not best:
+                print("[MEMORY MISS] no candidates")
+                return None
+
+            # Acceptance rules:
+            # 1) almost identical wording / typo
+            # 2) strong semantic paraphrase + reasonable combined score
+            # 3) combined score high enough
+            accepted = (
+                best["fuzzy_score"] >= FUZZY_THRESHOLD
+                or (
+                    best["semantic_score"] >= SEMANTIC_THRESHOLD
+                    and best["score"] >= threshold
+                )
+                or best["score"] >= COMBINED_THRESHOLD
+            )
+
+            if accepted:
                 print(
                     f"[MEMORY HIT] score={best['score']:.4f} "
-                    f"vector={best['vector_score']:.4f} "
+                    f"semantic={best['semantic_score']:.4f} "
                     f"fuzzy={best['fuzzy_score']:.4f} "
                     f"question={best['question']}"
                 )
                 return best
 
             print(
-                "[MEMORY MISS] "
-                + (f"best_score={best['score']:.4f}" if best else "empty")
+                f"[MEMORY MISS] best_score={best['score']:.4f} "
+                f"semantic={best['semantic_score']:.4f} "
+                f"fuzzy={best['fuzzy_score']:.4f}"
             )
             return None
 
-        except Exception as e:
-            print(f"[MEMORY SEARCH ERROR] {e}")
+        except Exception as exc:
+            print(f"[MEMORY SEARCH ERROR] {exc}")
             return None
 
-    def save(self, question, answer, source="user", source_urls=None):
+    def save(self, question, answer, source="web", source_urls=None, metadata=None):
         question = str(question or "").strip()
         answer = str(answer or "").strip()
+        source = str(source or "unknown").strip()
+
         if not question or not answer:
             raise ValueError("question و answer مطلوبان")
 
-        source_urls = source_urls or []
+        # Do not save obvious failure messages as knowledge.
+        bad_markers = [
+            "حدث خطأ مؤقت",
+            "حدث خطأ غير متوقع",
+            "الخدمة مشغولة",
+            "تعذر الاتصال",
+            "please try again",
+            "temporary error",
+        ]
+        if any(x.lower() in answer.lower() for x in bad_markers):
+            raise ValueError("لن يتم حفظ رسالة خطأ في الذاكرة")
+
+        embedding = self._embed([question])[0].tolist()
+        source_urls = list(source_urls or [])
+        if not source_urls and isinstance(metadata, dict):
+            source_urls = list(metadata.get("web_sources") or [])
 
         with _lock:
-            # إذا كانت نفس المعرفة موجودة، نحدّثها بدل إنشاء نسخة ثانية.
-            existing = self.search(question, threshold=min(self.threshold, 0.80))
-            if existing and existing["score"] >= 0.80:
-                embedding = rag._get_embeddings([_normalize(question)])[0].tolist()
-                database.update_learned_knowledge(
-                    existing["id"], question, answer, embedding, source, source_urls
-                )
-                print(f"[MEMORY UPDATE] id={existing['id']}")
-                return {**existing, "question": question, "answer": answer,
-                        "source": source, "source_urls": source_urls, "updated": True}
+            rows = database.get_all_learned_knowledge()
+            normalized = normalize_text(question)
+            existing_id = None
+            best_existing = None
 
-            embedding = rag._get_embeddings([_normalize(question)])[0].tolist()
+            for item in rows:
+                stored = item.get("question", "")
+                if normalize_text(stored) == normalized:
+                    existing_id = item["id"]
+                    break
+                sim = text_similarity(question, stored)
+                if best_existing is None or sim > best_existing[0]:
+                    best_existing = (sim, item)
+
+            # Update near-duplicate knowledge instead of creating dozens of
+            # entries for spelling variants of the same fact.
+            if existing_id is None and best_existing and best_existing[0] >= 0.93:
+                existing_id = best_existing[1]["id"]
+
+            if existing_id is not None:
+                database.update_learned_knowledge(
+                    existing_id,
+                    question,
+                    answer,
+                    embedding,
+                    source,
+                    source_urls,
+                )
+                print(f"[MEMORY UPDATE] id={existing_id} source={source}")
+                return {
+                    "id": existing_id,
+                    "question": question,
+                    "answer": answer,
+                    "source": source,
+                    "source_urls": source_urls,
+                    "updated": True,
+                }
+
             memory_id = database.save_learned_knowledge(
-                question, answer, embedding, source, source_urls
+                question,
+                answer,
+                embedding,
+                source,
+                source_urls,
             )
             print(f"[MEMORY SAVE] id={memory_id} source={source}")
             return {
@@ -162,5 +252,13 @@ class LearnedMemory:
             for x in reversed(rows)
         ]
 
+    # Compatibility with older main.py versions.
+    list_all = list_items
+
     def delete(self, memory_id):
         return database.delete_learned_knowledge(memory_id)
+
+    def clear(self):
+        rows = database.get_all_learned_knowledge()
+        for item in rows:
+            database.delete_learned_knowledge(item["id"])

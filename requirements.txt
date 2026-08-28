@@ -11,4 +11,4 @@ requests
 python-dotenv
 groq
 psycopg[binary]
-scikit-learn
+sentence-transformers
