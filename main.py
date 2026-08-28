@@ -8,6 +8,7 @@ import urllib.parse
 
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from openai import OpenAI
+from groq import Groq
 from dotenv import load_dotenv
 
 import rag
@@ -100,6 +101,25 @@ client = OpenAI(
 
 
 MODEL_NAME = "gemini-3.6-flash"
+
+
+# =========================================================
+# GROQ (خطة بديلة عند فشل Gemini)
+# =========================================================
+
+GROQ_API_KEY = os.environ.get(
+    "GROQ_API_KEY"
+)
+
+groq_client = (
+    Groq(api_key=GROQ_API_KEY)
+    if GROQ_API_KEY
+    else None
+)
+
+# ملاحظة: تأكد من اسم الموديل الحالي على console.groq.com/docs/models
+# لأن أسماء موديلات Groq تتغيّر بمرور الوقت.
+GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
 
 
 # =========================================================
@@ -1010,11 +1030,115 @@ def rate_limit_user_message(error):
 # CALL MODEL WITH RETRY
 # =========================================================
 
+def _call_llm_once(
+    active_client,
+    model_name,
+    outgoing_messages
+):
+    """
+    محاولة واحدة لاستدعاء نموذج (Gemini أو Groq) مع معالجة
+    أداة توليد الصور. مشتركة بين الموديل الأساسي والبديل.
+    """
+
+    response = active_client.chat.completions.create(
+        model=model_name,
+        messages=outgoing_messages,
+        tools=[IMAGE_TOOL],
+        tool_choice="auto",
+        temperature=0.7,
+        max_tokens=768
+    )
+
+    choice = response.choices[0]
+
+    tool_calls = (
+        choice.message.tool_calls
+    )
+
+    # =================================================
+    # IMAGE TOOL
+    # =================================================
+
+    if tool_calls:
+
+        tool_call = tool_calls[0]
+
+        args = json.loads(
+            tool_call.function.arguments
+        )
+
+        image_prompt = (
+            args.get("prompt")
+            or outgoing_messages[-1]["content"]
+        )
+
+        image_url = generate_image_url(
+            image_prompt
+        )
+
+        answer = (
+            "تفضل، هذه الصورة التي طلبتها 🎨"
+        )
+
+        return answer, image_url
+
+    # =================================================
+    # NORMAL ANSWER
+    # =================================================
+
+    raw_answer = (
+        choice.message.content
+        or ""
+    )
+
+    user_last_message = (
+        outgoing_messages[-1]["content"]
+    )
+
+    fake_prompt = (
+        extract_fake_image_prompt(
+            raw_answer,
+            user_last_message
+        )
+    )
+
+    if fake_prompt:
+
+        image_url = generate_image_url(
+            fake_prompt
+        )
+
+        answer = (
+            "تفضل، هذه الصورة التي طلبتها 🎨"
+        )
+
+        return answer, image_url
+
+    clean_answer = (
+        strip_fake_image_markdown(
+            raw_answer
+        )
+        or raw_answer
+    )
+
+    return clean_answer, None
+
+
 def call_model_with_image_tool(
     outgoing_messages
 ):
+    """
+    يحاول Gemini أولاً مع إعادة المحاولة عند ازدحام الطلبات.
+    إذا فشل Gemini نهائياً بسبب rate limit (بعد استنفاد
+    المحاولات، أو تجاوز الحد اليومي)، ينتقل تلقائياً إلى
+    Groq كخطة بديلة قبل الاستسلام.
+    """
 
     last_error = None
+
+    # =====================================================
+    # المحاولة الأساسية: Gemini
+    # =====================================================
 
     for attempt in range(
         MAX_RETRIES + 1
@@ -1022,88 +1146,11 @@ def call_model_with_image_tool(
 
         try:
 
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=outgoing_messages,
-                tools=[IMAGE_TOOL],
-                tool_choice="auto",
-                temperature=0.7,
-                max_tokens=768
+            return _call_llm_once(
+                client,
+                MODEL_NAME,
+                outgoing_messages
             )
-
-            choice = response.choices[0]
-
-            tool_calls = (
-                choice.message.tool_calls
-            )
-
-            # =================================================
-            # IMAGE TOOL
-            # =================================================
-
-            if tool_calls:
-
-                tool_call = tool_calls[0]
-
-                args = json.loads(
-                    tool_call.function.arguments
-                )
-
-                image_prompt = (
-                    args.get("prompt")
-                    or outgoing_messages[-1]["content"]
-                )
-
-                image_url = generate_image_url(
-                    image_prompt
-                )
-
-                answer = (
-                    "تفضل، هذه الصورة التي طلبتها 🎨"
-                )
-
-                return answer, image_url
-
-            # =================================================
-            # NORMAL ANSWER
-            # =================================================
-
-            raw_answer = (
-                choice.message.content
-                or ""
-            )
-
-            user_last_message = (
-                outgoing_messages[-1]["content"]
-            )
-
-            fake_prompt = (
-                extract_fake_image_prompt(
-                    raw_answer,
-                    user_last_message
-                )
-            )
-
-            if fake_prompt:
-
-                image_url = generate_image_url(
-                    fake_prompt
-                )
-
-                answer = (
-                    "تفضل، هذه الصورة التي طلبتها 🎨"
-                )
-
-                return answer, image_url
-
-            clean_answer = (
-                strip_fake_image_markdown(
-                    raw_answer
-                )
-                or raw_answer
-            )
-
-            return clean_answer, None
 
         except Exception as e:
 
@@ -1118,7 +1165,8 @@ def call_model_with_image_tool(
                 "tokens per day" in error_text
                 or "tpd" in error_text
             ):
-                raise
+                # لا داعي لإعادة المحاولة، الحد اليومي انتهى تماماً
+                break
 
             retry_seconds = extract_retry_seconds(e)
 
@@ -1138,6 +1186,38 @@ def call_model_with_image_tool(
 
             else:
                 break
+
+    # =====================================================
+    # Gemini فشل نهائياً: جرّب Groq كخطة بديلة
+    # =====================================================
+
+    if groq_client is not None:
+
+        try:
+
+            print(
+                "[FALLBACK] Gemini فشل، "
+                "الانتقال إلى Groq"
+            )
+
+            return _call_llm_once(
+                groq_client,
+                GROQ_FALLBACK_MODEL,
+                outgoing_messages
+            )
+
+        except Exception as groq_error:
+
+            print(
+                f"[GROQ FALLBACK ERROR] {groq_error}"
+            )
+
+            # لو Groq فشل هو الآخر، ارفع خطأ Gemini الأصلي
+            # (عشان رسائل الـ rate limit تفضل صحيحة للمستخدم)
+            last_error = (
+                last_error
+                or groq_error
+            )
 
     if last_error:
         raise last_error
