@@ -100,11 +100,11 @@ client = OpenAI(
 )
 
 
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = "gemini-2.5-flash"
 
 
 # =========================================================
-# GROQ (خطة بديلة عند فشل Gemini)
+# GROQ (الموديل الأساسي الآن — سخي ومستقر مجاناً)
 # =========================================================
 
 GROQ_API_KEY = os.environ.get(
@@ -120,6 +120,28 @@ groq_client = (
 # ملاحظة: نفس الموديل المستخدم في rag.py لتحليل الصور (qwen/qwen3.6-27b)
 # مؤكد أنه شغّال على حسابك، فاستخدمناه هنا كمان بدل تخمين اسم موديل جديد.
 GROQ_FALLBACK_MODEL = "qwen/qwen3.6-27b"
+
+
+# =========================================================
+# OPENROUTER (خطة بديلة أخيرة، لو Groq و Gemini فشلوا)
+# =========================================================
+
+OPENROUTER_API_KEY = os.environ.get(
+    "OPENROUTER_API_KEY"
+)
+
+openrouter_client = (
+    OpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1"
+    )
+    if OPENROUTER_API_KEY
+    else None
+)
+
+# ملاحظة: قايمة الموديلات المجانية (بعلامة :free) بتتغيّر بمرور
+# الوقت. تأكد من القايمة الحالية على openrouter.ai/models?max_price=0
+OPENROUTER_FALLBACK_MODEL = "deepseek/deepseek-chat-v3.1:free"
 
 
 # =========================================================
@@ -1124,21 +1146,19 @@ def _call_llm_once(
     return clean_answer, None
 
 
-def call_model_with_image_tool(
+def _call_with_retries(
+    provider_name,
+    active_client,
+    model_name,
     outgoing_messages
 ):
     """
-    يحاول Gemini أولاً مع إعادة المحاولة عند ازدحام الطلبات.
-    إذا فشل Gemini نهائياً بسبب rate limit (بعد استنفاد
-    المحاولات، أو تجاوز الحد اليومي)، ينتقل تلقائياً إلى
-    Groq كخطة بديلة قبل الاستسلام.
+    يحاول استدعاء مزود واحد مع إعادة المحاولة عند ازدحام
+    الطلبات (rate limit). يرفع الاستثناء لو فشل نهائياً —
+    إما بعد استنفاد المحاولات، أو لخطأ غير متعلق بالازدحام.
     """
 
     last_error = None
-
-    # =====================================================
-    # المحاولة الأساسية: Gemini
-    # =====================================================
 
     for attempt in range(
         MAX_RETRIES + 1
@@ -1147,8 +1167,8 @@ def call_model_with_image_tool(
         try:
 
             return _call_llm_once(
-                client,
-                MODEL_NAME,
+                active_client,
+                model_name,
                 outgoing_messages
             )
 
@@ -1180,6 +1200,11 @@ def call_model_with_image_tool(
 
             if attempt < MAX_RETRIES:
 
+                print(
+                    f"[{provider_name}] ازدحام، "
+                    f"إعادة محاولة بعد {retry_seconds}s"
+                )
+
                 time.sleep(
                     retry_seconds
                 )
@@ -1187,37 +1212,64 @@ def call_model_with_image_tool(
             else:
                 break
 
-    # =====================================================
-    # Gemini فشل نهائياً: جرّب Groq كخطة بديلة
-    # =====================================================
+    raise last_error
+
+
+def call_model_with_image_tool(
+    outgoing_messages
+):
+    """
+    يحاول الموديلات بالترتيب: Groq (الأساسي) ثم Gemini ثم
+    OpenRouter. لو فشل مزود لأي سبب (ازدحام، خطأ، انقطاع)،
+    ينتقل تلقائياً للمزود التالي في السلسلة.
+    """
+
+    last_error = None
+
+    providers = []
 
     if groq_client is not None:
 
+        providers.append((
+            "Groq",
+            groq_client,
+            GROQ_FALLBACK_MODEL
+        ))
+
+    providers.append((
+        "Gemini",
+        client,
+        MODEL_NAME
+    ))
+
+    if openrouter_client is not None:
+
+        providers.append((
+            "OpenRouter",
+            openrouter_client,
+            OPENROUTER_FALLBACK_MODEL
+        ))
+
+    for provider_name, active_client, model_name in providers:
+
         try:
 
-            print(
-                "[FALLBACK] Gemini فشل، "
-                "الانتقال إلى Groq"
-            )
-
-            return _call_llm_once(
-                groq_client,
-                GROQ_FALLBACK_MODEL,
+            return _call_with_retries(
+                provider_name,
+                active_client,
+                model_name,
                 outgoing_messages
             )
 
-        except Exception as groq_error:
+        except Exception as e:
+
+            last_error = e
 
             print(
-                f"[GROQ FALLBACK ERROR] {groq_error}"
+                f"[{provider_name} ERROR] {e}"
             )
 
-            # لو Groq فشل هو الآخر، ارفع خطأ Gemini الأصلي
-            # (عشان رسائل الـ rate limit تفضل صحيحة للمستخدم)
-            last_error = (
-                last_error
-                or groq_error
-            )
+            continue
 
     if last_error:
         raise last_error
