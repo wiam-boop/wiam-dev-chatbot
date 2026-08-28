@@ -12,3 +12,4 @@ python-dotenv
 huggingface_hub
 groq
 psycopg[binary]
+psycopg[binary]==3.2.9
