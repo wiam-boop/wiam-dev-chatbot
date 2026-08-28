@@ -79,36 +79,53 @@ def is_admin():
 # GEMINI
 # =========================================================
 
-GEMINI_API_KEY = os.environ.get(
-    "GEMINI_API_KEY"
-)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GROQ_API_KEY   = os.environ.get("GROQ_API_KEY", "")
 
-if not GEMINI_API_KEY:
+if not GEMINI_API_KEY and not GROQ_API_KEY:
     raise RuntimeError(
-        "لم يتم العثور على GEMINI_API_KEY. "
-        "أنشئ متغير GEMINI_API_KEY في Railway."
+        "لم يتم العثور على أي مفتاح API. "
+        "أضف GEMINI_API_KEY أو GROQ_API_KEY في Railway."
     )
 
 
-client = OpenAI(
-    api_key=GEMINI_API_KEY,
-    base_url=(
-        "https://generativelanguage.googleapis.com/"
-        "v1beta/openai/"
-    )
-)
+# ─── قائمة النماذج مع Fallback تلقائي ───
+def _build_model_chain():
+    chain = []
+    if GEMINI_API_KEY:
+        chain.append((
+            OpenAI(
+                api_key=GEMINI_API_KEY,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            ),
+            "gemini-2.0-flash",
+            "Gemini"
+        ))
+    if GROQ_API_KEY:
+        chain.append((
+            OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1"),
+            "llama-3.3-70b-versatile",
+            "Groq-Llama"
+        ))
+        chain.append((
+            OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1"),
+            "mixtral-8x7b-32768",
+            "Groq-Mixtral"
+        ))
+    return chain
 
-
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_CHAIN = _build_model_chain()
+client     = MODEL_CHAIN[0][0]
+MODEL_NAME = MODEL_CHAIN[0][1]
 
 
 # =========================================================
 # TOKEN / HISTORY OPTIMIZATION
 # =========================================================
 
-MAX_HISTORY_MESSAGES = 8
+MAX_HISTORY_MESSAGES = 20
 
-MAX_HISTORY_MESSAGE_CHARS = 3000
+MAX_HISTORY_MESSAGE_CHARS = 8000
 
 MAX_RAG_CONTEXT_CHARS = 6000
 
@@ -1022,14 +1039,25 @@ def call_model_with_image_tool(
 
         try:
 
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=outgoing_messages,
-                tools=[IMAGE_TOOL],
-                tool_choice="auto",
-                temperature=0.7,
-                max_tokens=768
-            )
+            last_error = None
+            response   = None
+            for _client, _model, _label in MODEL_CHAIN:
+                try:
+                    response = _client.chat.completions.create(
+                        model=_model,
+                        messages=outgoing_messages,
+                        tools=[IMAGE_TOOL],
+                        tool_choice="auto",
+                        temperature=0.7,
+                        max_tokens=2048
+                    )
+                    print(f"[MODEL] {_label}")
+                    break
+                except Exception as e:
+                    last_error = e
+                    print(f"[FALLBACK] {_label} فشل: {e}")
+            if response is None:
+                raise RuntimeError(f"فشلت جميع النماذج: {last_error}")
 
             choice = response.choices[0]
 
@@ -1509,15 +1537,24 @@ def chat():
     # 4. GET HISTORY
     # =====================================================
 
-    messages = session.get(
-        "messages",
-        [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            }
-        ]
-    )
+    messages = session.get("messages", [])
+
+    # ── ذاكرة دائمة: حمّل المحادثات السابقة من DB ──
+    if len(messages) <= 1:
+        try:
+            db_msgs = database.get_messages(chat_session_id, limit=20)
+            if db_msgs:
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                for m in db_msgs:
+                    if m["role"] in ("user", "assistant"):
+                        messages.append({"role": m["role"], "content": m["content"]})
+                session["messages"] = messages
+        except Exception as mem_err:
+            print(f"[MEMORY] {mem_err}")
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if not messages:
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     # =====================================================
     # 5. RAG SEARCH
