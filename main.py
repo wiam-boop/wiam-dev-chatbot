@@ -7,12 +7,9 @@ import time
 import urllib.parse
 import requests
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from openai import OpenAI
+from dotenv import load_dotenv
 
 import rag
 import database
@@ -22,6 +19,8 @@ import knowledge_memory
 # =========================================================
 # ENVIRONMENT
 # =========================================================
+
+load_dotenv()
 
 app = Flask(__name__)
 

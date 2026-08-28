@@ -9,7 +9,6 @@ import threading
 
 import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
 from groq import Groq
 
 from pypdf import PdfReader
@@ -49,20 +48,22 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # ─── نموذج embedding محلي (بلا API خارجي) ───
-EMBED_MODEL_NAME = os.environ.get("EMBED_MODEL_NAME", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-EMBED_DIM = 384
-_embed_model = None
-_embed_model_lock = threading.Lock()
+EMBED_DIM = 2048
 
-def _get_embed_model():
-    global _embed_model
-    if _embed_model is None:
-        with _embed_model_lock:
-            if _embed_model is None:
-                print("[RAG] Loading local embedding model...")
-                _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
-                print("[RAG] Local embedding model loaded.")
-    return _embed_model
+# Lightweight local text embeddings.
+# Uses character n-grams instead of PyTorch/SentenceTransformers so Railway
+# does not need to load a large neural model into RAM. Character n-grams also
+# tolerate many spelling mistakes and small rewrites.
+from sklearn.feature_extraction.text import HashingVectorizer
+
+_vectorizer = HashingVectorizer(
+    n_features=EMBED_DIM,
+    analyzer="char",
+    ngram_range=(2, 5),
+    lowercase=True,
+    alternate_sign=False,
+    norm="l2",
+)
 
 # ─── عميل Groq (مخصص فقط لفهم الصور عبر نموذج Vision) ───
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -76,14 +77,10 @@ _lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """ينشئ embeddings محليًا بدون HuggingFace Inference API."""
-    model = _get_embed_model()
-    embeddings = model.encode(
-        texts,
-        normalize_embeddings=True,
-        convert_to_numpy=True
-    )
-    return np.asarray(embeddings, dtype="float32")
+    """إنشاء متجهات نصية خفيفة محليًا بدون PyTorch أو HuggingFace API."""
+    clean = [str(x or "") for x in texts]
+    matrix = _vectorizer.transform(clean)
+    return matrix.astype("float32").toarray()
 
 # ─── استخراج النص ───
 
@@ -220,13 +217,33 @@ class KnowledgeBase:
         self._load()
 
     def _load(self):
-        if os.path.exists(INDEX_PATH) and os.path.exists(META_PATH):
-            self.index = faiss.read_index(INDEX_PATH)
-            with open(META_PATH, "r", encoding="utf-8") as f:
-                self.meta = json.load(f)
+        self.meta = []
+        if os.path.exists(META_PATH):
+            try:
+                with open(META_PATH, "r", encoding="utf-8") as f:
+                    self.meta = json.load(f)
+            except Exception as e:
+                print(f"[RAG] Could not load metadata: {e}")
+                self.meta = []
+
+        old_index = None
+        if os.path.exists(INDEX_PATH):
+            try:
+                old_index = faiss.read_index(INDEX_PATH)
+            except Exception as e:
+                print(f"[RAG] Could not load old index: {e}")
+
+        # If the project used the previous 384-dim transformer index, rebuild
+        # it with the lightweight 2048-dim representation.
+        if old_index is not None and old_index.d == EMBED_DIM:
+            self.index = old_index
         else:
             self.index = faiss.IndexFlatIP(EMBED_DIM)
-            self.meta  = []
+            if self.meta:
+                texts = [m.get("text", "") for m in self.meta]
+                self.index.add(_get_embeddings(texts))
+                self._save()
+                print(f"[RAG] Rebuilt lightweight index with {len(texts)} chunks.")
 
     def _save(self):
         faiss.write_index(self.index, INDEX_PATH)
