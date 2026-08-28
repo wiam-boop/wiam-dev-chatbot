@@ -104,7 +104,7 @@ client = OpenAI(
 )
 
 
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.7-flash").strip() or "gemini-3.7-flash"
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
@@ -788,6 +788,29 @@ def is_model_question(message: str) -> bool:
 
 
 # =========================================================
+# SIMPLE / GREETING DETECTION
+# =========================================================
+
+def is_simple_greeting(message: str) -> bool:
+    text = normalize_text(message)
+    greetings = {
+        "hi", "hello", "hey", "hey there", "hiya",
+        "مرحبا", "مرحباً", "اهلا", "اهلا وسهلا", "أهلا",
+        "السلام عليكم", "سلام", "هاي", "هلا", "هيلو",
+        "مرهيا", "صباح الخير", "مساء الخير"
+    }
+    return text in {_normalize_for_greeting(x) for x in greetings}
+
+
+def _normalize_for_greeting(text: str) -> str:
+    text = str(text or "").lower().strip()
+    text = text.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+    text = re.sub(r"[ًٌٍَُِّْـ]", "", text)
+    text = re.sub(r"[؟?!.,،؛:;\-_]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# =========================================================
 # IMAGE REQUEST DETECTION
 # =========================================================
 
@@ -1056,7 +1079,8 @@ def search_web_tavily(query, max_results=5):
 # =========================================================
 
 def call_model_with_image_tool(
-    outgoing_messages
+    outgoing_messages,
+    use_image_tool=False
 ):
 
     last_error = None
@@ -1067,14 +1091,20 @@ def call_model_with_image_tool(
 
         try:
 
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=outgoing_messages,
-                tools=[IMAGE_TOOL],
-                tool_choice="auto",
-                temperature=0.7,
-                max_tokens=768
-            )
+            request_kwargs = {
+                "model": MODEL_NAME,
+                "messages": outgoing_messages,
+                "temperature": 0.7,
+                "max_tokens": 768
+            }
+
+            # لا نرسل أدوات Function Calling في الأسئلة العادية؛
+            # هذا يجعل الطلبات النصية أخف وأكثر استقراراً.
+            if use_image_tool:
+                request_kwargs["tools"] = [IMAGE_TOOL]
+                request_kwargs["tool_choice"] = "auto"
+
+            response = client.chat.completions.create(**request_kwargs)
 
             choice = response.choices[0]
 
@@ -1634,7 +1664,15 @@ def chat():
         and float(results[0].get("score", 0)) >= rag_threshold
     )
 
-    if not strong_rag:
+    # التحية والمحادثة القصيرة لا تحتاج بحث ويب.
+    # نستخدم Web فقط عندما تكون الرسالة سؤال معرفة فعلياً.
+    should_use_web = (
+        not strong_rag
+        and not is_simple_greeting(user_message)
+        and len(normalize_text(user_message)) >= 12
+    )
+
+    if should_use_web:
         web_results = search_web_tavily(user_message)
         if web_results:
             web_context = "## نتائج البحث على الويب:\n\n"
@@ -1681,12 +1719,13 @@ def chat():
             )
         })
 
-        sources_used = sorted({
-            r["source"]
-            for r in results
-            if isinstance(r, dict)
-            and r.get("source")
-        })
+        if not web_results:
+            sources_used = sorted({
+                r["source"]
+                for r in results
+                if isinstance(r, dict)
+                and r.get("source")
+            })
 
     # =====================================================
     # 7. CURRENT USER MESSAGE
@@ -1705,7 +1744,8 @@ def chat():
 
         answer, image_url = (
             call_model_with_image_tool(
-                outgoing_messages
+                outgoing_messages,
+                use_image_tool=is_image_request(user_message)
             )
         )
 
