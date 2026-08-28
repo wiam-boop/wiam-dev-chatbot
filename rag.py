@@ -1,5 +1,6 @@
 """
 محرك RAG — يستخدم HuggingFace للـ embeddings و Groq (Qwen Vision) لفهم الصور
++ Semantic Cache: يحفظ الإجابات ويسترجعها للأسئلة المتشابهة
 """
 import base64
 import os
@@ -20,64 +21,176 @@ import pytesseract
 # ─── مسار التخزين ───
 IS_RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
 
-# STORAGE_DIR قابل للضبط عبر متغير بيئة STORAGE_PATH.
-# على Railway: أنشئي Volume من تبويب Variables/Volumes في الخدمة،
-# اربطيه بمسار مثل /data، وضعي STORAGE_PATH=/data في Environment Variables.
-# بدون هذا الضبط، سيُستعمل /tmp/storage كحل احتياطي فقط —
-# وهو غير دائم ويُمسح مع كل إعادة نشر/تشغيل على Railway.
 _env_storage_path = os.environ.get("STORAGE_PATH", "").strip()
 
 if _env_storage_path:
     STORAGE_DIR = _env_storage_path
 elif IS_RAILWAY:
     STORAGE_DIR = "/tmp/storage"
-    print(
-        "[تحذير] STORAGE_PATH غير مضبوط على Railway. "
-        "سيتم استخدام /tmp/storage وهو غير دائم "
-        "(ستُفقد الملفات والفهرس مع كل إعادة نشر). "
-        "أضيفي Volume دائم واضبطي STORAGE_PATH لتفادي فقدان البيانات."
-    )
 else:
     STORAGE_DIR = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "storage"
     )
 
-UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
-INDEX_PATH  = os.path.join(STORAGE_DIR, "kb.index")
-META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
+UPLOADS_DIR  = os.path.join(STORAGE_DIR, "uploads")
+INDEX_PATH   = os.path.join(STORAGE_DIR, "kb.index")
+META_PATH    = os.path.join(STORAGE_DIR, "kb_meta.json")
+
+# ─── مسارات الـ Semantic Cache ───
+CACHE_INDEX_PATH = os.path.join(STORAGE_DIR, "cache.index")
+CACHE_META_PATH  = os.path.join(STORAGE_DIR, "cache_meta.json")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# ─── نموذج embedding محلي (بلا API خارجي) ───
-HF_API_KEY = os.environ.get("HF_API_KEY")
-_hf_client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
+# ─── HuggingFace embeddings ───
+HF_API_KEY       = os.environ.get("HF_API_KEY")
+_hf_client       = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-EMBED_DIM = 384
+EMBED_DIM        = 384
 
-# ─── عميل Groq (مخصص فقط لفهم الصور عبر نموذج Vision) ───
+# ─── Groq Vision ───
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 _groq_client = Groq(api_key=GROQ_API_KEY)
-VISION_MODEL = "qwen/qwen3.6-27b"   # نموذج Groq متعدد الوسائط (نص + صورة) — متاح في الخطة المجانية
+VISION_MODEL = "qwen/qwen3.6-27b"
 
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
 _lock         = threading.Lock()
 
+# ─── إعدادات الـ Cache ───
+CACHE_SIMILARITY_THRESHOLD = 0.92   # نسبة التشابه المطلوبة (92%)
+CACHE_MAX_SIZE             = 500    # أقصى عدد إجابات محفوظة
+
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings عبر HuggingFace Inference Providers"""
     vectors = [
         _hf_client.feature_extraction(text, model=EMBED_MODEL_NAME)
         for text in texts
     ]
     embeddings = np.array(vectors, dtype="float32")
-
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)
     return embeddings / norms
 
-# ─── استخراج النص ───
+
+# =========================================================
+# SEMANTIC CACHE
+# =========================================================
+
+class SemanticCache:
+    """
+    ذاكرة ذكية — تحفظ الأسئلة والإجابات وتسترجعها
+    عند ورود سؤال مشابه بنسبة تشابه عالية.
+    خفيفة على الذاكرة: FAISS + JSON فقط.
+    """
+
+    def __init__(self):
+        self.index = None
+        self.meta  = []   # [{question, answer, hits}, ...]
+        self._lock = threading.Lock()
+        self._load()
+
+    def _load(self):
+        if os.path.exists(CACHE_INDEX_PATH) and os.path.exists(CACHE_META_PATH):
+            try:
+                self.index = faiss.read_index(CACHE_INDEX_PATH)
+                with open(CACHE_META_PATH, "r", encoding="utf-8") as f:
+                    self.meta = json.load(f)
+                print(f"[CACHE] تم تحميل {len(self.meta)} إجابة محفوظة")
+            except Exception as e:
+                print(f"[CACHE] خطأ في التحميل: {e}")
+                self._reset()
+        else:
+            self._reset()
+
+    def _reset(self):
+        self.index = faiss.IndexFlatIP(EMBED_DIM)
+        self.meta  = []
+
+    def _save(self):
+        try:
+            faiss.write_index(self.index, CACHE_INDEX_PATH)
+            with open(CACHE_META_PATH, "w", encoding="utf-8") as f:
+                json.dump(self.meta, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"[CACHE] خطأ في الحفظ: {e}")
+
+    def get(self, question: str):
+        """ابحث عن إجابة مشابهة — يُعيد الإجابة أو None"""
+        if self.index.ntotal == 0 or not question.strip():
+            return None
+        try:
+            q_emb           = _get_embeddings([question])
+            scores, indices = self.index.search(q_emb, 1)
+            score = float(scores[0][0])
+            idx   = int(indices[0][0])
+
+            if score >= CACHE_SIMILARITY_THRESHOLD and idx < len(self.meta):
+                item = self.meta[idx]
+                item["hits"] = item.get("hits", 0) + 1
+                self._save()
+                print(f"[CACHE HIT] تشابه={score:.2f} | السؤال: {item['question'][:50]}")
+                return item["answer"]
+        except Exception as e:
+            print(f"[CACHE GET ERROR] {e}")
+        return None
+
+    def set(self, question: str, answer: str):
+        """احفظ سؤالاً وإجابته في الذاكرة"""
+        if not question.strip() or not answer.strip():
+            return
+        # لا تحفظ الأسئلة القصيرة جداً (أقل من 5 أحرف)
+        if len(question.strip()) < 5:
+            return
+        try:
+            with self._lock:
+                # إذا وصلنا للحد الأقصى، احذف الأقل استخداماً
+                if len(self.meta) >= CACHE_MAX_SIZE:
+                    self._evict_least_used()
+
+                q_emb = _get_embeddings([question])
+                self.index.add(q_emb)
+                self.meta.append({
+                    "question": question,
+                    "answer":   answer,
+                    "hits":     0,
+                })
+                self._save()
+                print(f"[CACHE SET] حُفظت إجابة جديدة | إجمالي: {len(self.meta)}")
+        except Exception as e:
+            print(f"[CACHE SET ERROR] {e}")
+
+    def _evict_least_used(self):
+        """احذف أقل 50 إجابة استخداماً وأعد بناء الفهرس"""
+        if len(self.meta) < 50:
+            return
+        # رتّب حسب الاستخدام واحتفظ بالأكثر استخداماً
+        self.meta.sort(key=lambda x: x.get("hits", 0), reverse=True)
+        keep = self.meta[:CACHE_MAX_SIZE - 50]
+        texts = [m["question"] for m in keep]
+        embeddings = _get_embeddings(texts)
+        new_index = faiss.IndexFlatIP(EMBED_DIM)
+        new_index.add(embeddings)
+        self.index = new_index
+        self.meta  = keep
+        print(f"[CACHE EVICT] تم تقليص الذاكرة إلى {len(keep)} إجابة")
+
+    def stats(self):
+        return {
+            "total":    len(self.meta),
+            "max_size": CACHE_MAX_SIZE,
+            "threshold": CACHE_SIMILARITY_THRESHOLD,
+        }
+
+
+# ─── instance عام للـ cache ───
+semantic_cache = SemanticCache()
+
+
+# =========================================================
+# استخراج النص
+# =========================================================
 
 def extract_text(file_path: str, ext: str) -> str:
     ext = ext.lower()
@@ -114,15 +227,7 @@ def _extract_docx(file_path: str) -> str:
 
 
 def _extract_image(file_path: str) -> str:
-    """
-    يحاول أولاً قراءة أي نص مكتوب داخل الصورة عبر OCR.
-    إذا لم يجد نصاً كافياً (صورة بدون كتابة: منتج، مكان، رسم، صورة شخص...)
-    يستخدم نموذج رؤية (Vision) عبر Groq لوصف محتوى الصورة نصياً،
-    ليصبح هذا الوصف قابلاً للفهرسة والبحث ضمن قاعدة المعرفة.
-    """
     image = Image.open(file_path)
-
-    # الخطوة 1: محاولة OCR أولاً (أسرع وأرخص، ومناسب للمستندات الممسوحة)
     try:
         ocr_text = pytesseract.image_to_string(image, lang="ara+eng")
     except Exception:
@@ -132,65 +237,52 @@ def _extract_image(file_path: str) -> str:
             ocr_text = ""
 
     ocr_text = ocr_text.strip()
-
-    # لو استخرجنا نصاً معقولاً (أكثر من 20 حرف مثلاً) نكتفي به
     if len(ocr_text) > 20:
         return ocr_text
 
-    # الخطوة 2: لا يوجد نص كافٍ → استخدم نموذج الرؤية لوصف الصورة
     vision_description = _describe_image_with_vision(file_path)
-
-    # ندمج الاثنين احتياطاً (في حال وجد OCR كلمات قليلة مفيدة)
     combined = "\n".join(filter(None, [ocr_text, vision_description]))
     return combined.strip()
 
 
 def _describe_image_with_vision(file_path: str) -> str:
-    """يستخدم نموذج رؤية عبر Groq API لوصف محتوى الصورة نصياً بالتفصيل."""
     if not GROQ_API_KEY:
         return "[لم يتم ضبط GROQ_API_KEY، تعذر تحليل الصورة]"
-
     try:
         with open(file_path, "rb") as f:
             b64_image = base64.b64encode(f.read()).decode("utf-8")
-
-        ext = os.path.splitext(file_path)[1].lower().replace(".", "")
+        ext  = os.path.splitext(file_path)[1].lower().replace(".", "")
         mime = "jpeg" if ext in ("jpg", "jpeg") else ext
-
         completion = _groq_client.chat.completions.create(
             model=VISION_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": (
-                                "صف هذه الصورة بالتفصيل باللغة العربية: "
-                                "ما الذي تظهره؟ الأشخاص، الأشياء، النصوص إن وجدت، "
-                                "الألوان، السياق العام. اجعل الوصف غنياً بالمعلومات "
-                                "بحيث يمكن الإجابة على أسئلة عن محتوى الصورة اعتماداً عليه فقط."
-                            ),
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/{mime};base64,{b64_image}"
-                            },
-                        },
-                    ],
-                }
-            ],
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "صف هذه الصورة بالتفصيل باللغة العربية: "
+                            "ما الذي تظهره؟ الأشخاص، الأشياء، النصوص إن وجدت، "
+                            "الألوان، السياق العام. اجعل الوصف غنياً بالمعلومات."
+                        ),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/{mime};base64,{b64_image}"},
+                    },
+                ],
+            }],
             temperature=0.3,
             max_completion_tokens=800,
         )
         return completion.choices[0].message.content.strip()
     except Exception as e:
-        # في حال فشل الاتصال بنموذج الرؤية، لا نكسر الرفع بالكامل
-        return f"[تعذر توليد وصف للصورة تلقائياً: {e}]"
+        return f"[تعذر توليد وصف للصورة: {e}]"
 
 
-# ─── تقسيم النص ───
+# =========================================================
+# تقسيم النص
+# =========================================================
 
 def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     text = " ".join(text.split())
@@ -203,7 +295,9 @@ def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     return chunks
 
 
-# ─── قاعدة المعرفة ───
+# =========================================================
+# قاعدة المعرفة
+# =========================================================
 
 class KnowledgeBase:
     def __init__(self):
