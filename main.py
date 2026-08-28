@@ -98,19 +98,19 @@ def _build_model_chain():
                 api_key=GEMINI_API_KEY,
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
             ),
-            "gemini-2.0-flash",
+            "gemini-3.6-flash",
             "Gemini"
         ))
     if GROQ_API_KEY:
         chain.append((
             OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1"),
-            "llama-3.3-70b-versatile",
+            "llama3-70b-8192",
             "Groq-Llama"
         ))
         chain.append((
             OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1"),
-            "mixtral-8x7b-32768",
-            "Groq-Mixtral"
+            "gemma2-9b-it",
+            "Groq-Gemma"
         ))
     return chain
 
