@@ -1,6 +1,6 @@
 # 🤖 Wiam Dev ChatBot
 
-شات بوت ذكي بواجهة ويب أنيقة، من تطوير **Wiam Dev**، يجيب على أسئلتك باستخدام نموذج لغوي كبير عبر **Google Gemini API**، ويمكنه أيضاً **قراءة وتحليل ملفاتك (PDF, Word, صور، TXT وMarkdown)** والإجابة من محتواها مباشرة باستخدام تقنية **RAG (Retrieval-Augmented Generation)**.
+شات بوت ذكي بواجهة ويب أنيقة، من تطوير **Wiam Dev**، يجيب على أسئلتك باستخدام نموذج لغوي كبير عبر **نظام متعدد المزودين (Groq وGoogle Gemini وOpenRouter)** يضمن استمرارية الخدمة حتى عند انقطاع أو امتلاء كوتة أحد المزودين، ويمكنه أيضاً **قراءة وتحليل ملفاتك (PDF, Word, صور، TXT وMarkdown)** والإجابة من محتواها مباشرة باستخدام تقنية **RAG (Retrieval-Augmented Generation)**.
 
 بالإضافة إلى ذلك، يدعم المشروع **توليد الصور بالذكاء الاصطناعي** من خلال Tool Calling، كما يستطيع **فهم وتحليل الصور** باستخدام OCR ونموذج Vision متعدد الوسائط عبر Groq.
 
@@ -24,7 +24,9 @@
 * 🖼️ **توليد الصور بالذكاء الاصطناعي** من خلال الأوصاف النصية
 * 🪄 استخدام **Tool Calling** لجعل النموذج يقرر تلقائياً متى يحتاج إلى توليد صورة
 * 🎨 إنشاء صور من أوصاف تتضمن العناصر والألوان والأسلوب الفني والخلفية
-* ⚡ استجابة سريعة عبر **Google Gemini API**
+* ⚡ استجابة سريعة عبر نظام متعدد المزودين: **Groq → Gemini → OpenRouter**
+* 🔁 **Fallback تلقائي** بين ثلاثة مزودين للذكاء الاصطناعي عند فشل أو ازدحام أحدهم
+* 🔄 إعادة محاولة ذكية (Retry with Backoff) عند ازدحام الطلبات لكل مزود
 * 🔐 حماية مفاتيح API باستخدام Environment Variables
 * 📋 عرض المستندات الموجودة في قاعدة المعرفة
 * 🗑️ حذف المستندات وإعادة بناء فهرس البحث
@@ -38,9 +40,13 @@
 | الطبقة             | التقنية                                                       |
 | ------------------ | ------------------------------------------------------------- |
 | Backend            | Flask / Python                                                |
-| LLM                | Google Gemini API                                             |
-| نموذج المحادثة     | `gemini-3.6-flash`                                             |
-| SDK                | OpenAI-compatible SDK عبر Gemini                               |
+| LLM (أساسي)        | Groq API                                                       |
+| نموذج المحادثة الأساسي | `qwen/qwen3.6-27b` عبر Groq                                |
+| LLM (بديل 1)        | Google Gemini API                                             |
+| نموذج المحادثة البديل | `gemini-2.5-flash`                                          |
+| LLM (بديل 2)        | OpenRouter API                                                |
+| نموذج المحادثة الاحتياطي | `deepseek/deepseek-chat-v3.1:free`                       |
+| SDK                | OpenAI-compatible SDK لكل المزودين الثلاثة                    |
 | Image Generation   | Pollinations Image API                                        |
 | Image Tool Calling | OpenAI-compatible Tool Calling                                |
 | Vision AI          | `qwen/qwen3.6-27b` عبر Groq                                   |
@@ -78,23 +84,49 @@
            └────┬─────┘      └────┬─────┘      └──────┬──────┘
                 │                 │                    │
                 ▼                 ▼                    ▼
-            Gemini LLM         FAISS             Pollinations
-                                  ▲
-                                  │
-                           Hugging Face
+         ┌─────────────┐       FAISS             Pollinations
+         │ Groq (أساسي) │          ▲
+         └──────┬──────┘          │
+                │ فشل؟      Hugging Face
+                ▼
+         ┌─────────────┐
+         │   Gemini    │
+         └──────┬──────┘
+                │ فشل؟
+                ▼
+         ┌─────────────┐
+         │ OpenRouter  │
+         └─────────────┘
 ```
 
 ---
 
 # 💬 المحادثة مع الذكاء الاصطناعي
 
-المحادثة الرئيسية تستخدم:
+يعتمد المشروع على **نظام Fallback متعدد المزودين** بدلاً من الاعتماد على مزود واحد فقط، لضمان استمرارية الخدمة عند انقطاع أو امتلاء كوتة أحد المزودين.
+
+## 🔗 ترتيب المحاولة
 
 ```text
-gemini-3.6-flash
+1️⃣  Groq            → qwen/qwen3.6-27b
+2️⃣  Google Gemini   → gemini-2.5-flash
+3️⃣  OpenRouter       → deepseek/deepseek-chat-v3.1:free
 ```
 
-من خلال **Google Gemini API** باستخدام SDK متوافق مع OpenAI.
+يتم تجربة المزودين بالترتيب أعلاه. عند فشل مزود لأي سبب (ازدحام طلبات، انتهاء كوتة، انقطاع خدمة)، ينتقل النظام تلقائياً للمزود التالي، من دون أي تدخل من المستخدم.
+
+## 🔄 إعادة المحاولة (Retry with Backoff)
+
+لكل مزود على حدة، عند حدوث خطأ **ازدحام طلبات (Rate Limit)**، يحاول النظام مرة أخرى مع فترة انتظار تصاعدية (Exponential Backoff) قبل الانتقال للمزود التالي:
+
+```text
+MAX_RETRIES = 2
+MAX_RETRY_WAIT = 8 ثوانٍ
+```
+
+أما الأخطاء غير المتعلقة بالازدحام (مثل خطأ في المصادقة أو طلب غير صالح)، فينتقل النظام مباشرة للمزود التالي دون انتظار.
+
+## 📨 محتوى الطلب
 
 يتم إرسال:
 
@@ -103,9 +135,11 @@ gemini-3.6-flash
 * سؤال المستخدم
 * سياق المستندات عند توفره
 
-إلى النموذج للحصول على الإجابة.
+إلى المزود النشط للحصول على الإجابة.
 
 يحتفظ المشروع بحد أقصى **20 رسالة** في جلسة المستخدم.
+
+> 💡 لماذا Groq أولاً؟ لأن خطته المجانية سخية جداً (ملايين التوكنز يومياً) ومستقرة، بينما الخطة المجانية لـ Gemini محدودة بعدد طلبات يومي منخفض نسبياً حسب الموديل المستخدم.
 
 ---
 
@@ -125,7 +159,7 @@ gemini-3.6-flash
 generate_image
 ```
 
-بدلاً من كتابة رابط صورة وهمي.
+بدلاً من كتابة رابط صورة وهمي. الأداة مدعومة على كل المزودين الثلاثة (Groq, Gemini, OpenRouter) باستخدام نفس تنسيق Tool Calling المتوافق مع OpenAI.
 
 ## 🔄 آلية توليد الصورة
 
@@ -133,7 +167,7 @@ generate_image
 طلب المستخدم
      │
      ▼
-Gemini LLM
+LLM النشط (Groq / Gemini / OpenRouter)
      │
      ▼
 Tool Calling
@@ -700,8 +734,9 @@ wiam-dev-chatbot/
 ## المتطلبات
 
 * Python 3.10 أو أحدث
-* حساب ومفتاح API من Google Gemini (للمحادثة الرئيسية)
-* حساب ومفتاح API من Groq (لتحليل الصور فقط عبر Vision AI)
+* حساب ومفتاح API من **Groq** (المزود الأساسي للمحادثة، وأيضاً لتحليل الصور عبر Vision AI)
+* حساب ومفتاح API من **Google Gemini** (مزود بديل عند فشل Groq)
+* حساب ومفتاح API من **OpenRouter** (مزود بديل ثالث واختياري، لمزيد من الاستقرار)
 * مفتاح Hugging Face
 * Tesseract OCR لدعم قراءة الصور النصية
 * اتصال بالإنترنت لتحميل نموذج الـEmbeddings واستخدام APIs
@@ -774,12 +809,14 @@ cp .env.example .env
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxx
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxx
 HF_API_KEY=hf_xxxxxxxxxxxxxxxxx
 FLASK_SECRET_KEY=your_random_secret_key
 ```
 
-> `GEMINI_API_KEY` يُستخدم للمحادثة الرئيسية عبر Google Gemini.
-> `GROQ_API_KEY` مازال مطلوباً لتحليل الصور (Vision AI) داخل `rag.py`.
+> `GROQ_API_KEY` هو المزود **الأساسي** للمحادثة، ومطلوب أيضاً لتحليل الصور (Vision AI) داخل `rag.py`.
+> `GEMINI_API_KEY` يُستخدم كمزود **بديل** عند فشل أو ازدحام Groq.
+> `OPENROUTER_API_KEY` **اختياري** — يُستخدم كمزود بديل ثالث وأخير عند فشل Groq وGemini معاً. لو لم يتم ضبطه، يتخطى النظام هذه الطبقة تلقائياً بدون أي خطأ.
 
 ---
 
@@ -858,6 +895,7 @@ docker build -t wiam-dev-chatbot .
 docker run -p 5000:5000 \
   -e GEMINI_API_KEY="your_gemini_api_key" \
   -e GROQ_API_KEY="your_groq_api_key" \
+  -e OPENROUTER_API_KEY="your_openrouter_api_key" \
   -e HF_API_KEY="your_huggingface_key" \
   -e FLASK_SECRET_KEY="your_secret_key" \
   wiam-dev-chatbot
@@ -904,6 +942,7 @@ Dockerfile
 ```text
 GEMINI_API_KEY
 GROQ_API_KEY
+OPENROUTER_API_KEY
 HF_API_KEY
 FLASK_SECRET_KEY
 ```
@@ -933,6 +972,7 @@ FLASK_SECRET_KEY
 
 * لا تضع `GEMINI_API_KEY` داخل الكود.
 * لا تضع `GROQ_API_KEY` داخل الكود.
+* لا تضع `OPENROUTER_API_KEY` داخل الكود.
 * لا تضع `HF_API_KEY` داخل الكود.
 * لا ترفع `.env` إلى GitHub.
 * استخدم Environment Variables في Production.
@@ -969,7 +1009,7 @@ FLASK_SECRET_KEY
 * API Routes
 * المحادثة
 * Session
-* Gemini LLM
+* نظام Fallback متعدد المزودين (Groq / Gemini / OpenRouter)
 * Tool Calling
 * Image Generation
 * إدارة المستندات
@@ -1013,6 +1053,7 @@ FLASK_SECRET_KEY
 * [ ] واجهة متقدمة لإدارة قاعدة المعرفة
 * [ ] Streaming للإجابات
 * [ ] دعم نماذج ذكاء اصطناعي إضافية
+* [ ] لوحة مراقبة لعرض إحصائيات استخدام كل مزود ذكاء اصطناعي (Groq/Gemini/OpenRouter)
 
 ---
 
@@ -1027,17 +1068,17 @@ FLASK_SECRET_KEY
           Chat AI            RAG System       Image Generation
              │                  │                  │
              ▼                  ▼                  ▼
-      Gemini LLM          Hugging Face        Tool Calling
-                              │                  │
-                              ▼                  ▼
-                            FAISS          Pollinations
-                              ▲
-                              │
-                    ┌─────────┴─────────┐
-                    │                   │
-                    ▼                   ▼
-                   OCR              Vision AI
-               Tesseract          Qwen via Groq
+      Groq (أساسي)         Hugging Face        Tool Calling
+             │ فشل؟             │                  │
+             ▼                  ▼                  ▼
+        Gemini (بديل)         FAISS          Pollinations
+             │ فشل؟             ▲
+             ▼                  │
+      OpenRouter (بديل)  ┌─────┴─────┐
+                          │           │
+                          ▼           ▼
+                         OCR      Vision AI
+                     Tesseract   Qwen via Groq
 ```
 
 ---
