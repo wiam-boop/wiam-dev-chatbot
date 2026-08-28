@@ -424,3 +424,142 @@ def get_stats():
             "conversations": total_conversations,
             "images": total_images
         }
+
+
+# =========================================================
+# LEARNED KNOWLEDGE / LIGHTWEIGHT MEMORY
+# =========================================================
+
+def _ensure_learned_knowledge_table():
+    """Create the lightweight learned-memory table if it does not exist."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS learned_knowledge (
+                    id BIGSERIAL PRIMARY KEY,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_learned_knowledge_question
+                ON learned_knowledge(question)
+            """)
+        else:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS learned_knowledge (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_learned_knowledge_question
+                ON learned_knowledge(question)
+            """)
+
+
+def get_all_learned_knowledge(limit=1000):
+    """
+    Return learned question/answer pairs for the lightweight Memory system.
+    The function intentionally returns simple dictionaries so main.py can
+    work without sentence-transformers or another embedding model.
+    """
+    _ensure_learned_knowledge_table()
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+            cur.execute("""
+                SELECT id, question, answer, created_at
+                FROM learned_knowledge
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+            """, (limit,))
+        else:
+            cur.execute("""
+                SELECT id, question, answer, created_at
+                FROM learned_knowledge
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+            """, (limit,))
+
+        return [dict(row) for row in cur.fetchall()]
+
+
+def save_learned_knowledge(question, answer):
+    """
+    Save a useful question/answer pair to learned Memory.
+
+    If the exact question already exists, update its answer instead of
+    creating an unnecessary duplicate.
+    """
+    if not question or not answer:
+        return None
+
+    question = str(question).strip()
+    answer = str(answer).strip()
+
+    if not question or not answer:
+        return None
+
+    _ensure_learned_knowledge_table()
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+            cur.execute("""
+                SELECT id
+                FROM learned_knowledge
+                WHERE question = %s
+                LIMIT 1
+            """, (question,))
+        else:
+            cur.execute("""
+                SELECT id
+                FROM learned_knowledge
+                WHERE question = ?
+                LIMIT 1
+            """, (question,))
+
+        existing = cur.fetchone()
+
+        if existing:
+            existing_id = existing["id"]
+
+            if USE_POSTGRES:
+                cur.execute("""
+                    UPDATE learned_knowledge
+                    SET answer = %s, created_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (answer, existing_id))
+            else:
+                cur.execute("""
+                    UPDATE learned_knowledge
+                    SET answer = ?, created_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (answer, existing_id))
+
+            return existing_id
+
+        if USE_POSTGRES:
+            cur.execute("""
+                INSERT INTO learned_knowledge (question, answer)
+                VALUES (%s, %s)
+                RETURNING id
+            """, (question, answer))
+            row = cur.fetchone()
+            return row["id"] if row else None
+
+        cur.execute("""
+            INSERT INTO learned_knowledge (question, answer)
+            VALUES (?, ?)
+        """, (question, answer))
+
+        return cur.lastrowid
