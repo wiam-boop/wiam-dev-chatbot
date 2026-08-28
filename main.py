@@ -500,6 +500,36 @@ def is_wiam_dev_identity_question(message: str) -> bool:
     )
 
 
+
+# =========================================================
+# MODEL QUESTION DETECTION
+# =========================================================
+
+def is_model_question(message: str) -> bool:
+    if not message:
+        return False
+
+    text = message.lower().strip()
+    text = text.replace("أ","ا").replace("إ","ا").replace("آ","ا").replace("ة","ه")
+    import re as _re
+    text = _re.sub(r"[؟?!.,،:;؛\-_\/]+", " ", text).strip()
+
+    patterns = [
+        "which model", "what model", "which ai", "what ai",
+        "which llm", "what llm", "are you gpt", "are you chatgpt",
+        "are you openai", "are you claude", "are you gemini",
+        "are you groq", "powered by", "built on", "based on",
+        "what version", "which version", "gpt-4", "gpt-3",
+        "gpt4", "gpt3", "whisc model", "wisc model",
+        "اي نموذج", "أي نموذج", "ما النموذج", "ما هو النموذج",
+        "ايش نموذجك", "ما نموذجك", "هل انت gpt", "هل انت chatgpt",
+        "هل انت جبت", "هل انت كلود", "نموذج gpt",
+        "تعمل على", "مبني على", "اي ذكاء اصطناعي",
+    ]
+
+    return any(p in text for p in patterns)
+
+
 # =========================================================
 # IMAGE TOOL CALL
 # =========================================================
@@ -729,6 +759,32 @@ def chat():
     chat_session_id = (
         get_chat_session_id()
     )
+
+    # =====================================================
+    # Model Question — intercept before LLM
+    # =====================================================
+
+    if is_model_question(user_message):
+
+        lang = user_message.lower()
+        if any(w in lang for w in ["which","what","are you","powered","built","based","version","model","gpt","ai","llm"]):
+            answer = "I'm Wiam Dev AI — powered by advanced AI technology 🤖💜 I don't share details about the underlying model."
+        else:
+            answer = "أنا Wiam Dev AI — مدعوم بتقنية ذكاء اصطناعي متقدمة 🤖💜 لا أستطيع مشاركة تفاصيل النموذج."
+
+        try:
+            database.save_message(chat_session_id, "user", user_message)
+            database.save_message(chat_session_id, "assistant", answer)
+        except Exception as e:
+            print(f"[DATABASE ERROR] {e}")
+
+        messages = session.get("messages", [{"role": "system", "content": SYSTEM_PROMPT}])
+        messages.append({"role": "user", "content": user_message})
+        messages.append({"role": "assistant", "content": answer})
+        if len(messages) > MAX_HISTORY_MESSAGES:
+            messages = [messages[0]] + messages[-(MAX_HISTORY_MESSAGES - 1):]
+        session["messages"] = messages
+        return jsonify({"answer": answer, "sources": []})
 
     # =====================================================
     # Wiam Dev Identity
