@@ -1,6 +1,6 @@
 # 🤖 Wiam Dev ChatBot
 
-شات بوت ذكي بواجهة ويب أنيقة، من تطوير **Wiam Dev**، يجيب على أسئلتك باستخدام نموذج لغوي كبير عبر **Groq API**، ويمكنه أيضاً **قراءة وتحليل ملفاتك (PDF, Word, صور، TXT وMarkdown)** والإجابة من محتواها مباشرة باستخدام تقنية **RAG (Retrieval-Augmented Generation)**.
+شات بوت ذكي بواجهة ويب أنيقة، من تطوير **Wiam Dev**، يجيب على أسئلتك باستخدام نموذج لغوي كبير عبر **Google Gemini API**، ويمكنه أيضاً **قراءة وتحليل ملفاتك (PDF, Word, صور، TXT وMarkdown)** والإجابة من محتواها مباشرة باستخدام تقنية **RAG (Retrieval-Augmented Generation)**.
 
 بالإضافة إلى ذلك، يدعم المشروع **توليد الصور بالذكاء الاصطناعي** من خلال Tool Calling، كما يستطيع **فهم وتحليل الصور** باستخدام OCR ونموذج Vision متعدد الوسائط عبر Groq.
 
@@ -24,7 +24,7 @@
 * 🖼️ **توليد الصور بالذكاء الاصطناعي** من خلال الأوصاف النصية
 * 🪄 استخدام **Tool Calling** لجعل النموذج يقرر تلقائياً متى يحتاج إلى توليد صورة
 * 🎨 إنشاء صور من أوصاف تتضمن العناصر والألوان والأسلوب الفني والخلفية
-* ⚡ استجابة سريعة عبر **Groq API**
+* ⚡ استجابة سريعة عبر **Google Gemini API**
 * 🔐 حماية مفاتيح API باستخدام Environment Variables
 * 📋 عرض المستندات الموجودة في قاعدة المعرفة
 * 🗑️ حذف المستندات وإعادة بناء فهرس البحث
@@ -38,9 +38,9 @@
 | الطبقة             | التقنية                                                       |
 | ------------------ | ------------------------------------------------------------- |
 | Backend            | Flask / Python                                                |
-| LLM                | Groq API                                                      |
-| نموذج المحادثة     | `openai/gpt-oss-120b`                                         |
-| SDK                | OpenAI-compatible SDK عبر Groq                                |
+| LLM                | Google Gemini API                                             |
+| نموذج المحادثة     | `gemini-3.6-flash`                                             |
+| SDK                | OpenAI-compatible SDK عبر Gemini                               |
 | Image Generation   | Pollinations Image API                                        |
 | Image Tool Calling | OpenAI-compatible Tool Calling                                |
 | Vision AI          | `qwen/qwen3.6-27b` عبر Groq                                   |
@@ -78,7 +78,7 @@
            └────┬─────┘      └────┬─────┘      └──────┬──────┘
                 │                 │                    │
                 ▼                 ▼                    ▼
-             Groq LLM          FAISS             Pollinations
+            Gemini LLM         FAISS             Pollinations
                                   ▲
                                   │
                            Hugging Face
@@ -91,10 +91,10 @@
 المحادثة الرئيسية تستخدم:
 
 ```text
-openai/gpt-oss-120b
+gemini-3.6-flash
 ```
 
-من خلال **Groq API** باستخدام SDK متوافق مع OpenAI.
+من خلال **Google Gemini API** باستخدام SDK متوافق مع OpenAI.
 
 يتم إرسال:
 
@@ -133,7 +133,7 @@ generate_image
 طلب المستخدم
      │
      ▼
-Groq LLM
+Gemini LLM
      │
      ▼
 Tool Calling
@@ -590,7 +590,7 @@ FAISS Search
   ↓
 إضافة المصدر إلى Context
   ↓
-Groq LLM
+Gemini LLM
   ↓
 الإجابة
 ```
@@ -700,7 +700,8 @@ wiam-dev-chatbot/
 ## المتطلبات
 
 * Python 3.10 أو أحدث
-* حساب ومفتاح API من Groq
+* حساب ومفتاح API من Google Gemini (للمحادثة الرئيسية)
+* حساب ومفتاح API من Groq (لتحليل الصور فقط عبر Vision AI)
 * مفتاح Hugging Face
 * Tesseract OCR لدعم قراءة الصور النصية
 * اتصال بالإنترنت لتحميل نموذج الـEmbeddings واستخدام APIs
@@ -771,10 +772,14 @@ cp .env.example .env
 ثم أضف:
 
 ```env
+GEMINI_API_KEY=your_gemini_api_key
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxx
 HF_API_KEY=hf_xxxxxxxxxxxxxxxxx
 FLASK_SECRET_KEY=your_random_secret_key
 ```
+
+> `GEMINI_API_KEY` يُستخدم للمحادثة الرئيسية عبر Google Gemini.
+> `GROQ_API_KEY` مازال مطلوباً لتحليل الصور (Vision AI) داخل `rag.py`.
 
 ---
 
@@ -851,7 +856,8 @@ docker build -t wiam-dev-chatbot .
 
 ```bash
 docker run -p 5000:5000 \
-  -e GROQ_API_KEY="your_api_key" \
+  -e GEMINI_API_KEY="your_gemini_api_key" \
+  -e GROQ_API_KEY="your_groq_api_key" \
   -e HF_API_KEY="your_huggingface_key" \
   -e FLASK_SECRET_KEY="your_secret_key" \
   wiam-dev-chatbot
@@ -896,6 +902,7 @@ Dockerfile
 يجب إضافة Environment Variables من لوحة Railway:
 
 ```text
+GEMINI_API_KEY
 GROQ_API_KEY
 HF_API_KEY
 FLASK_SECRET_KEY
@@ -924,6 +931,7 @@ FLASK_SECRET_KEY
 
 # 🔐 ملاحظات الأمان
 
+* لا تضع `GEMINI_API_KEY` داخل الكود.
 * لا تضع `GROQ_API_KEY` داخل الكود.
 * لا تضع `HF_API_KEY` داخل الكود.
 * لا ترفع `.env` إلى GitHub.
@@ -961,7 +969,7 @@ FLASK_SECRET_KEY
 * API Routes
 * المحادثة
 * Session
-* Groq LLM
+* Gemini LLM
 * Tool Calling
 * Image Generation
 * إدارة المستندات
@@ -1019,7 +1027,7 @@ FLASK_SECRET_KEY
           Chat AI            RAG System       Image Generation
              │                  │                  │
              ▼                  ▼                  ▼
-       Groq LLM          Hugging Face        Tool Calling
+      Gemini LLM          Hugging Face        Tool Calling
                               │                  │
                               ▼                  ▼
                             FAISS          Pollinations
@@ -1058,7 +1066,7 @@ FLASK_SECRET_KEY
 * Image Generation
 * Web Development
 
-المشروع يمثل تجربة تعليمية وعملية في بناء تطبيقات ذكاء اصطناعي باستخدام **Python وFlask وGroq وHugging Face وFAISS**.
+المشروع يمثل تجربة تعليمية وعملية في بناء تطبيقات ذكاء اصطناعي باستخدام **Python وFlask وGoogle Gemini وGroq وHugging Face وFAISS**.
 
 ---
 
