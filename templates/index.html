@@ -1,76 +1,47 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
->
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Wiam Dev ChatBot</title>
 
-<link
-  rel="preconnect"
-  href="https://fonts.googleapis.com"
->
-
-<link
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin
->
-
-<link
-  href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap"
-  rel="stylesheet"
->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-
 /* =========================================================
    VARIABLES
    ========================================================= */
-
 :root{
   --bg-main:#1e1e20;
   --bg-sidebar:#161618;
   --bg-elevated:#2a2a2d;
   --bg-input:#2f2f33;
   --border:#333336;
-
   --text-primary:#ececec;
   --text-secondary:#9a9aa2;
-
   --accent:#6c5ce7;
   --accent-hover:#7d70eb;
   --accent-soft:rgba(108,92,231,.14);
-
   --danger:#e5584f;
-
   --radius-lg:18px;
   --radius-md:12px;
   --radius-sm:8px;
-
   --font-ui:'Tajawal',sans-serif;
   --font-mono:'IBM Plex Mono',monospace;
 }
 
-
 /* =========================================================
    RESET
    ========================================================= */
-
 *{
   box-sizing:border-box;
   margin:0;
   padding:0;
 }
 
-html,
-body{
+html, body{
   width:100%;
   height:100%;
 }
@@ -83,86 +54,57 @@ body{
   font-family:var(--font-ui);
   background:var(--bg-main);
   color:var(--text-primary);
-
   display:flex;
-
   overflow:hidden;
   min-width:0;
 }
 
-
 /* =========================================================
    SIDEBAR
    ========================================================= */
-
 #sidebar{
   width:280px;
   min-width:280px;
-
   background:var(--bg-sidebar);
-
   display:flex;
   flex-direction:column;
-
   height:100vh;
   height:100dvh;
-
   border-left:1px solid var(--border);
-
-  transition:
-    margin-right .25s ease,
-    transform .25s ease;
+  transition: margin-right .25s ease, transform .25s ease;
 }
 
-
 /* Desktop */
-
 #sidebar.collapsed{
   margin-right:-280px;
 }
 
-
 /* =========================================================
    SIDEBAR HEADER
    ========================================================= */
-
 .sidebar-header{
   padding:16px;
-
   display:flex;
   flex-direction:column;
-
   gap:10px;
 }
 
 .brand{
   display:flex;
   align-items:center;
-
   gap:10px;
-
   padding:0 4px 6px;
 }
 
 .brand-icon{
   width:32px;
   height:32px;
-
   border-radius:9px;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--accent),
-      #a29bfe
-    );
-
+  background: linear-gradient(135deg, var(--accent), #a29bfe);
   display:flex;
   align-items:center;
   justify-content:center;
-
   font-size:16px;
-
   flex-shrink:0;
 }
 
@@ -172,38 +114,23 @@ body{
   letter-spacing:.2px;
 }
 
-
 /* =========================================================
    NEW CHAT BUTTON
    ========================================================= */
-
 .new-chat-btn{
   display:flex;
   align-items:center;
-
   gap:10px;
-
   background:transparent;
-
   border:1px solid var(--border);
-
   color:var(--text-primary);
-
   padding:11px 14px;
-
   border-radius:var(--radius-md);
-
   font-family:var(--font-ui);
-
   font-size:14px;
   font-weight:500;
-
   cursor:pointer;
-
-  transition:
-    background .15s,
-    border-color .15s;
-
+  transition: background .15s, border-color .15s;
   width:100%;
 }
 
@@ -212,76 +139,47 @@ body{
   border-color:#444;
 }
 
-
 /* =========================================================
    SIDEBAR SECTION
    ========================================================= */
-
 .sidebar-section-label{
   font-size:11px;
-
   color:var(--text-secondary);
-
   text-transform:uppercase;
-
   letter-spacing:.6px;
-
   padding:14px 16px 6px;
-
   font-weight:700;
 }
-
 
 /* =========================================================
    CONVERSATIONS
    ========================================================= */
-
 #conversationsList{
   padding:0 12px 8px;
-
   display:flex;
   flex-direction:column;
-
   gap:5px;
-
   max-height:240px;
-
   overflow-y:auto;
   overflow-x:hidden;
-
   -webkit-overflow-scrolling:touch;
 }
 
 .conversation-item{
   width:100%;
-
   display:flex;
   align-items:center;
-
   gap:8px;
-
-  padding:10px;
-
+  padding:10px 10px;
   border:1px solid transparent;
-
   border-radius:9px;
-
   background:transparent;
-
   color:var(--text-primary);
-
   cursor:pointer;
-
   text-align:right;
-
   font-family:var(--font-ui);
-
   font-size:12.5px;
-
-  transition:
-    background .15s,
-    border-color .15s;
-
+  transition: background .15s, border-color .15s;
   touch-action:manipulation;
 }
 
@@ -302,81 +200,51 @@ body{
 
 .conversation-title{
   flex:1;
-
   min-width:0;
-
   overflow:hidden;
-
   text-overflow:ellipsis;
-
   white-space:nowrap;
 }
 
 .conversation-delete{
   flex-shrink:0;
-
   border:0;
-
   background:none;
-
   color:var(--text-secondary);
-
   padding:4px;
-
   font-size:13px;
-
   cursor:pointer;
-
   border-radius:5px;
 }
 
 .conversation-delete:hover{
   color:var(--danger);
-
   background:rgba(229,88,79,.12);
 }
-
 
 /* =========================================================
    DOCUMENTS
    ========================================================= */
-
 #docsPanelSidebar{
   flex:1;
-
   overflow-y:auto;
   overflow-x:hidden;
-
   padding:0 12px 12px;
-
   display:flex;
   flex-direction:column;
-
   gap:8px;
-
   -webkit-overflow-scrolling:touch;
 }
 
 .upload-zone{
   border:1.5px dashed var(--border);
-
   border-radius:var(--radius-md);
-
   padding:16px 10px;
-
   text-align:center;
-
   font-size:12.5px;
-
   color:var(--text-secondary);
-
   cursor:pointer;
-
-  transition:
-    border-color .15s,
-    color .15s,
-    background .15s;
-
+  transition: border-color .15s, color .15s, background .15s;
   line-height:1.6;
 }
 
@@ -387,308 +255,203 @@ body{
 
 .upload-zone.dragover{
   border-color:var(--accent);
-
   background:var(--accent-soft);
-
   color:var(--accent);
 }
 
 #docsList{
   display:flex;
   flex-direction:column;
-
   gap:6px;
 }
 
 .doc-item{
   display:flex;
-
   justify-content:space-between;
   align-items:center;
-
   background:var(--bg-elevated);
-
   border:1px solid var(--border);
-
   padding:9px 10px;
-
   border-radius:var(--radius-sm);
-
   font-size:12.5px;
-
   gap:6px;
 }
 
 .doc-item .doc-name{
   overflow:hidden;
-
   text-overflow:ellipsis;
-
   white-space:nowrap;
-
   display:flex;
   align-items:center;
-
   gap:6px;
-
   color:var(--text-primary);
 }
 
 .doc-item .doc-chunks{
   color:var(--text-secondary);
-
   font-size:11px;
-
   flex-shrink:0;
 }
 
 .doc-item .del-btn{
   background:none;
-
   border:none;
-
   color:var(--text-secondary);
-
   cursor:pointer;
-
   font-size:14px;
-
   padding:2px 4px;
-
   border-radius:4px;
-
   flex-shrink:0;
-
-  transition:
-    color .15s,
-    background .15s;
+  transition: color .15s, background .15s;
 }
 
 .doc-item .del-btn:hover{
   color:var(--danger);
-
   background:rgba(229,88,79,.12);
 }
 
 .empty-hint{
   color:var(--text-secondary);
-
   font-size:12.5px;
-
   text-align:center;
-
   padding:10px 4px;
 }
-
 
 /* =========================================================
    SIDEBAR FOOTER
    ========================================================= */
-
 .sidebar-footer{
   padding:12px 16px 16px;
-
   border-top:1px solid var(--border);
-
   font-size:12px;
-
   color:var(--text-secondary);
 }
-
 
 /* =========================================================
    MAIN
    ========================================================= */
-
 #main{
   flex:1;
-
   display:flex;
   flex-direction:column;
-
   height:100vh;
   height:100dvh;
-
   position:relative;
-
   min-width:0;
-
   width:100%;
 }
-
 
 /* =========================================================
    TOPBAR
    ========================================================= */
-
 #topbar{
   display:flex;
-
   align-items:center;
-
   gap:12px;
-
   padding:14px 20px;
-
   border-bottom:1px solid var(--border);
-
   flex-shrink:0;
 }
 
 #toggleSidebarBtn{
   background:none;
-
   border:none;
-
   color:var(--text-secondary);
-
   cursor:pointer;
-
   font-size:18px;
-
   padding:6px;
-
   border-radius:6px;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
-  transition:
-    background .15s,
-    color .15s;
+  transition: background .15s, color .15s;
+  -webkit-tap-highlight-color:transparent;
 }
 
 #toggleSidebarBtn:hover{
   background:var(--bg-elevated);
-
   color:var(--text-primary);
 }
 
 #topbar-title{
   font-weight:700;
-
   font-size:15px;
-
   color:var(--text-primary);
 }
-
 
 /* =========================================================
    CHAT
    ========================================================= */
-
 #chat{
   flex:1;
-
   min-height:0;
-
   width:100%;
-
   overflow-y:auto;
   overflow-x:hidden;
-
   padding:24px 0 8px;
-
   -webkit-overflow-scrolling:touch;
-
   overscroll-behavior-y:contain;
-
   touch-action:pan-y;
-
   scroll-behavior:smooth;
 }
 
 #chat-inner{
   width:100%;
-
   max-width:720px;
-
   margin:0 auto;
-
   padding:0 20px;
-
   display:flex;
   flex-direction:column;
-
   gap:22px;
-
   min-width:0;
 }
-
 
 /* =========================================================
    EMPTY STATE
    ========================================================= */
-
 #emptyState{
   min-height:100%;
-
   display:flex;
   flex-direction:column;
-
   align-items:center;
   justify-content:center;
-
   text-align:center;
-
   gap:14px;
-
   color:var(--text-secondary);
-
   padding:40px 20px;
 }
 
 #emptyState .empty-icon{
   width:56px;
   height:56px;
-
   border-radius:16px;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--accent),
-      #a29bfe
-    );
-
+  background: linear-gradient(135deg, var(--accent), #a29bfe);
   display:flex;
   align-items:center;
   justify-content:center;
-
   font-size:26px;
 }
 
 #emptyState h2{
   color:var(--text-primary);
-
   font-size:19px;
-
   font-weight:900;
 }
 
 #emptyState p{
   font-size:13.5px;
-
   max-width:340px;
-
   line-height:1.7;
 }
-
 
 /* =========================================================
    MESSAGES
    ========================================================= */
-
 .msg-row{
   display:flex;
-
   gap:12px;
-
   align-items:flex-start;
-
   width:100%;
-
   min-width:0;
 }
 
@@ -699,66 +462,44 @@ body{
 .avatar{
   width:30px;
   height:30px;
-
   border-radius:8px;
-
   display:flex;
   align-items:center;
   justify-content:center;
-
   font-size:14px;
-
   flex-shrink:0;
-
   margin-top:2px;
 }
 
 .avatar.bot{
-  background:
-    linear-gradient(
-      135deg,
-      var(--accent),
-      #a29bfe
-    );
+  background: linear-gradient(135deg, var(--accent), #a29bfe);
 }
 
 .avatar.user{
   background:var(--bg-elevated);
-
   border:1px solid var(--border);
 }
 
 .msg-body{
   flex:1;
-
   min-width:0;
-
   max-width:100%;
 }
 
 .msg-name{
   font-size:12.5px;
-
   font-weight:700;
-
   color:var(--text-secondary);
-
   margin-bottom:4px;
 }
 
 .msg-content{
   font-size:15px;
-
   line-height:1.85;
-
   color:var(--text-primary);
-
   white-space:pre-wrap;
-
   word-wrap:break-word;
-
   overflow-wrap:anywhere;
-
   max-width:100%;
 }
 
@@ -766,150 +507,97 @@ body{
   color:var(--danger);
 }
 
-
 /* =========================================================
    CODE
    ========================================================= */
-
 .msg-content pre{
   background:#101012;
-
   border:1px solid var(--border);
-
   border-radius:var(--radius-sm);
-
   padding:12px 14px;
-
   overflow-x:auto;
-
   direction:ltr;
-
   text-align:left;
-
   font-family:var(--font-mono);
-
   font-size:13px;
-
   margin:8px 0;
-
   max-width:100%;
-
   -webkit-overflow-scrolling:touch;
-
   touch-action:pan-x;
 }
 
 .msg-content code{
   background:#101012;
-
   padding:2px 6px;
-
   border-radius:5px;
-
   font-family:var(--font-mono);
-
   font-size:13px;
-
   direction:ltr;
-
   display:inline-block;
-
   max-width:100%;
-
   overflow-wrap:anywhere;
 }
 
 .msg-content pre code{
   background:none;
-
   padding:0;
 }
-
 
 /* =========================================================
    IMAGES
    ========================================================= */
-
 .msg-image{
   margin-top:10px;
-
   max-width:100%;
-
   border-radius:var(--radius-md);
-
   border:1px solid var(--border);
-
   display:block;
-
   overflow:hidden;
-
   background:var(--bg-elevated);
 }
 
 .msg-image img{
   width:100%;
-
   max-width:420px;
-
   height:auto;
-
   display:block;
 }
 
 .msg-image .img-loading{
   padding:14px;
-
   font-size:12.5px;
-
   color:var(--text-secondary);
-
   text-align:center;
 }
-
 
 /* =========================================================
    SOURCES
    ========================================================= */
-
 .sources-note{
   font-size:12px;
-
   color:var(--text-secondary);
-
   margin-top:8px;
-
   display:flex;
-
   align-items:center;
-
   gap:6px;
-
   overflow-wrap:anywhere;
 }
-
 
 /* =========================================================
    TYPING
    ========================================================= */
-
 .typing-dots{
   display:flex;
-
   gap:4px;
-
   padding:4px 0;
 }
 
 .typing-dots span{
   width:6px;
   height:6px;
-
   border-radius:50%;
-
   background:var(--text-secondary);
-
-  animation:
-    bounce 1.2s infinite ease-in-out;
+  animation: bounce 1.2s infinite ease-in-out;
 }
 
 .typing-dots span:nth-child(2){
@@ -921,60 +609,41 @@ body{
 }
 
 @keyframes bounce{
-
-  0%,
-  80%,
-  100%{
+  0%, 80%, 100%{
     transform:translateY(0);
     opacity:.5;
   }
-
   40%{
     transform:translateY(-4px);
     opacity:1;
   }
 }
 
-
 /* =========================================================
    INPUT
    ========================================================= */
-
 #inputArea{
   padding:14px 20px 20px;
-
   flex-shrink:0;
-
   width:100%;
 }
 
 #inputWrap{
   width:100%;
-
   max-width:720px;
-
   margin:0 auto;
 }
 
 form#chatForm{
   display:flex;
-
   align-items:flex-end;
-
-  gap:6px;
-
+  gap:8px;
   background:var(--bg-input);
-
   border:1px solid var(--border);
-
   border-radius:var(--radius-lg);
-
-  padding:8px;
-
+  padding:8px 10px 8px 8px;
   transition:border-color .15s;
-
   width:100%;
-
   min-width:0;
 }
 
@@ -982,161 +651,36 @@ form#chatForm:focus-within{
   border-color:var(--accent);
 }
 
-
-/* =========================================================
-   ATTACH BUTTON
-   ========================================================= */
-
 #attachBtn{
   background:none;
-
   border:none;
-
   color:var(--text-secondary);
-
   cursor:pointer;
-
   font-size:19px;
-
   padding:8px;
-
   border-radius:var(--radius-sm);
-
   flex-shrink:0;
-
-  transition:
-    background .15s,
-    color .15s;
+  transition: background .15s, color .15s;
 }
 
 #attachBtn:hover{
   background:var(--bg-elevated);
-
   color:var(--text-primary);
 }
-
-
-/* =========================================================
-   VOICE INPUT BUTTON
-   ========================================================= */
-
-#voiceBtn{
-  background:none;
-
-  border:none;
-
-  color:var(--text-secondary);
-
-  cursor:pointer;
-
-  font-size:19px;
-
-  padding:8px;
-
-  border-radius:var(--radius-sm);
-
-  flex-shrink:0;
-
-  transition:
-    background .15s,
-    color .15s,
-    transform .15s;
-}
-
-#voiceBtn:hover{
-  background:var(--bg-elevated);
-
-  color:var(--text-primary);
-}
-
-#voiceBtn.listening{
-  background:rgba(229,88,79,.15);
-
-  color:#ff6b61;
-
-  animation:voicePulse 1.2s infinite;
-}
-
-@keyframes voicePulse{
-
-  0%,
-  100%{
-    transform:scale(1);
-  }
-
-  50%{
-    transform:scale(1.12);
-  }
-}
-
-
-/* =========================================================
-   STOP SPEAK BUTTON
-   ========================================================= */
-
-#stopSpeechBtn{
-  display:none;
-
-  background:none;
-
-  border:none;
-
-  color:var(--text-secondary);
-
-  cursor:pointer;
-
-  font-size:18px;
-
-  padding:8px;
-
-  border-radius:var(--radius-sm);
-
-  flex-shrink:0;
-}
-
-#stopSpeechBtn:hover{
-  background:var(--bg-elevated);
-
-  color:var(--danger);
-}
-
-#stopSpeechBtn.visible{
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-}
-
-
-/* =========================================================
-   TEXT INPUT
-   ========================================================= */
 
 #msgInput{
   flex:1;
-
   min-width:0;
-
   width:100%;
-
   background:transparent;
-
   border:none;
-
   outline:none;
-
   color:var(--text-primary);
-
   font-family:var(--font-ui);
-
   font-size:15px;
-
   padding:9px 4px;
-
   resize:none;
-
   max-height:160px;
-
   line-height:1.5;
 }
 
@@ -1144,40 +688,21 @@ form#chatForm:focus-within{
   color:var(--text-secondary);
 }
 
-
-/* =========================================================
-   SEND
-   ========================================================= */
-
 #sendBtn{
   background:var(--accent);
-
   color:#fff;
-
   border:none;
-
   width:38px;
-
   height:38px;
-
   min-width:38px;
-
   border-radius:var(--radius-md);
-
   cursor:pointer;
-
   font-size:16px;
-
   flex-shrink:0;
-
   display:flex;
-
   align-items:center;
   justify-content:center;
-
-  transition:
-    background .15s,
-    opacity .15s;
+  transition: background .15s, opacity .15s;
 }
 
 #sendBtn:hover:not(:disabled){
@@ -1186,22 +711,13 @@ form#chatForm:focus-within{
 
 #sendBtn:disabled{
   opacity:.4;
-
   cursor:not-allowed;
 }
 
-
-/* =========================================================
-   FOOTNOTE
-   ========================================================= */
-
 #inputFootnote{
   text-align:center;
-
   font-size:11.5px;
-
   color:var(--text-secondary);
-
   margin-top:10px;
 }
 
@@ -1209,20 +725,16 @@ form#chatForm:focus-within{
   display:none;
 }
 
-
 /* =========================================================
    OVERLAY
    ========================================================= */
-
 #sidebarOverlay{
   display:none;
 }
 
-
 /* =========================================================
    SCROLLBAR
    ========================================================= */
-
 ::-webkit-scrollbar{
   width:8px;
 }
@@ -1233,7 +745,6 @@ form#chatForm:focus-within{
 
 ::-webkit-scrollbar-thumb{
   background:#3a3a3e;
-
   border-radius:8px;
 }
 
@@ -1241,281 +752,100 @@ form#chatForm:focus-within{
   background:#4a4a4e;
 }
 
-
-/* =========================================================
-   MARKDOWN
-   ========================================================= */
-
-.msg-content h1,
-.msg-content h2,
-.msg-content h3,
-.msg-content h4,
-.msg-content h5,
-.msg-content h6{
-  margin:12px 0 6px;
-
-  font-weight:700;
-
-  line-height:1.4;
-
-  color:var(--text-primary);
-}
-
-.msg-content h1{
-  font-size:1.3em;
-}
-
-.msg-content h2{
-  font-size:1.15em;
-}
-
-.msg-content h3{
-  font-size:1.05em;
-}
-
-.msg-content p{
-  margin:6px 0;
-
-  line-height:1.7;
-}
-
-.msg-content ul,
-.msg-content ol{
-  padding-right:20px;
-
-  margin:6px 0;
-}
-
-.msg-content li{
-  margin:4px 0;
-
-  line-height:1.6;
-}
-
-.msg-content table{
-  border-collapse:collapse;
-
-  width:100%;
-
-  margin:10px 0;
-
-  font-size:13px;
-}
-
-.msg-content th,
-.msg-content td{
-  border:1px solid var(--border);
-
-  padding:8px 12px;
-
-  text-align:right;
-}
-
-.msg-content th{
-  background:var(--bg-elevated);
-
-  font-weight:700;
-}
-
-.msg-content tr:nth-child(even){
-  background:rgba(255,255,255,.03);
-}
-
-.msg-content blockquote{
-  border-right:3px solid var(--accent);
-
-  padding:8px 12px;
-
-  margin:8px 0;
-
-  background:var(--accent-soft);
-
-  border-radius:4px;
-
-  color:var(--text-secondary);
-}
-
-.msg-content a{
-  color:var(--accent);
-
-  text-decoration:none;
-}
-
-.msg-content a:hover{
-  text-decoration:underline;
-}
-
-.msg-content hr{
-  border:none;
-
-  border-top:1px solid var(--border);
-
-  margin:12px 0;
-}
-
-.msg-content strong{
-  font-weight:700;
-
-  color:var(--text-primary);
-}
-
-.msg-content em{
-  font-style:italic;
-}
-
-
 /* =========================================================
    MOBILE
    ========================================================= */
-
 @media (max-width:760px){
-
   html{
     width:100%;
     height:100%;
-
     overflow:hidden;
   }
 
   body{
     width:100%;
     height:100%;
-
     min-width:0;
-
     overflow:hidden;
-
     position:fixed;
-
     inset:0;
-
     overscroll-behavior:none;
   }
 
-
   /* MAIN */
-
   #main{
     width:100%;
-
     min-width:0;
-
     max-width:100%;
-
     height:100vh;
     height:100dvh;
   }
 
-
   /* SIDEBAR */
-
   #sidebar{
     position:fixed;
-
     top:0;
     right:0;
-
     width:min(285px,84vw);
-
     min-width:0;
-
     max-width:300px;
-
     height:100vh;
     height:100dvh;
-
     z-index:1001;
-
     margin:0;
-
     transform:translateX(100%);
-
-    transition:
-      transform .28s cubic-bezier(.4,0,.2,1);
-
-    box-shadow:
-      -10px 0 35px rgba(0,0,0,.5);
-
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: -10px 0 35px rgba(0,0,0,.5);
     overflow-y:auto;
-
     overflow-x:hidden;
-
     -webkit-overflow-scrolling:touch;
-
     touch-action:pan-y;
   }
 
+  /* مغلق */
   #sidebar.collapsed{
     margin:0;
-
     transform:translateX(100%);
   }
 
+  /* مفتوح */
   #sidebar:not(.collapsed){
     transform:translateX(0);
   }
 
-
   /* OVERLAY */
-
   #sidebarOverlay{
     display:block;
-
     position:fixed;
-
     inset:0;
-
     z-index:1000;
-
     background:rgba(0,0,0,.48);
-
     opacity:0;
-
     visibility:hidden;
-
     pointer-events:none;
-
-    transition:
-      opacity .25s ease,
-      visibility .25s ease;
-
+    transition: opacity .25s ease, visibility .25s ease;
     touch-action:none;
   }
 
   #sidebarOverlay.active{
     opacity:1;
-
     visibility:visible;
-
     pointer-events:auto;
   }
 
-
   /* TOPBAR */
-
   #topbar{
     width:100%;
-
     min-height:58px;
-
-    padding:
-      10px
-      max(10px, env(safe-area-inset-right))
-      10px
-      max(10px, env(safe-area-inset-left));
+    padding:10px max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left));
   }
 
   #toggleSidebarBtn{
     width:40px;
-
     height:40px;
-
     min-width:40px;
-
     padding:0;
-
     font-size:20px;
-
     touch-action:manipulation;
   }
 
@@ -1523,50 +853,29 @@ form#chatForm:focus-within{
     font-size:14px;
   }
 
-
   /* CHAT */
-
   #chat{
     width:100%;
-
     max-width:100%;
-
     min-width:0;
-
     min-height:0;
-
     overflow-y:auto;
-
     overflow-x:hidden;
-
     padding:18px 0 10px;
-
     -webkit-overflow-scrolling:touch;
-
     touch-action:pan-y;
-
     overscroll-behavior-y:contain;
   }
 
   #chat-inner{
     width:100%;
-
     max-width:720px;
-
     min-width:0;
-
-    padding:
-      0
-      max(10px, env(safe-area-inset-right))
-      0
-      max(10px, env(safe-area-inset-left));
-
+    padding:0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
     gap:18px;
   }
 
-
   /* EMPTY */
-
   #emptyState{
     padding:30px 15px;
   }
@@ -1579,208 +888,133 @@ form#chatForm:focus-within{
     font-size:13px;
   }
 
-
   /* MESSAGES */
-
   .msg-row{
     width:100%;
-
     max-width:100%;
-
     min-width:0;
-
     gap:8px;
   }
 
   .avatar{
     width:28px;
-
     height:28px;
-
     min-width:28px;
-
     font-size:13px;
   }
 
   .msg-body{
     width:100%;
-
     min-width:0;
-
     max-width:calc(100% - 36px);
   }
 
   .msg-content{
     width:100%;
-
     max-width:100%;
-
     font-size:14px;
-
     line-height:1.75;
-
     overflow-wrap:anywhere;
-
     word-break:break-word;
   }
 
   .msg-content pre{
     width:100%;
-
     max-width:100%;
-
     overflow-x:auto;
-
     -webkit-overflow-scrolling:touch;
-
     touch-action:pan-x;
-
     font-size:12px;
-
     padding:10px;
   }
 
   .msg-content code{
     max-width:100%;
-
     font-size:12px;
   }
 
   .msg-image{
     width:100%;
-
     max-width:100%;
   }
 
   .msg-image img{
     width:100%;
-
     max-width:100%;
-
     height:auto;
   }
 
-
   /* INPUT */
-
   #inputArea{
     width:100%;
-
     max-width:100%;
-
-    padding:
-      8px
-      max(8px, env(safe-area-inset-right))
-      max(8px, env(safe-area-inset-bottom))
-      max(8px, env(safe-area-inset-left));
+    padding:8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
 
   #inputWrap{
     width:100%;
-
     max-width:none;
   }
 
   form#chatForm{
     width:100%;
-
     max-width:100%;
-
     min-width:0;
-
-    gap:4px;
-
+    gap:5px;
     padding:6px;
-
     border-radius:15px;
   }
 
   #attachBtn{
     font-size:17px;
-
     padding:7px;
-
-    min-width:32px;
-  }
-
-  #voiceBtn{
-    font-size:17px;
-
-    padding:7px;
-
-    min-width:32px;
-  }
-
-  #stopSpeechBtn{
-    font-size:17px;
-
-    padding:7px;
-
     min-width:32px;
   }
 
   #msgInput{
     min-width:0;
-
     width:100%;
-
     font-size:16px;
-
     padding:8px 3px;
   }
 
   #sendBtn{
     width:38px;
-
     height:38px;
-
     min-width:38px;
-
     border-radius:10px;
   }
 
   #inputFootnote{
     font-size:10px;
-
     margin-top:7px;
   }
 
-
   /* CONVERSATIONS */
-
   #conversationsList{
     max-height:220px;
-
     overflow-y:auto;
-
     -webkit-overflow-scrolling:touch;
-
     touch-action:pan-y;
   }
 
   .conversation-item{
     min-height:42px;
-
     padding:10px;
   }
 }
 
-
 /* =========================================================
    SMALL PHONES
    ========================================================= */
-
 @media (max-width:480px){
-
   #sidebar{
     width:86vw;
-
     max-width:300px;
   }
 
   #chat-inner{
     padding-left:10px;
-
     padding-right:10px;
   }
 
@@ -1790,25 +1024,20 @@ form#chatForm:focus-within{
 
   #topbar{
     padding-left:10px;
-
     padding-right:10px;
   }
 }
 
-
 /* =========================================================
    VERY SMALL PHONES
    ========================================================= */
-
 @media (max-width:360px){
-
   #sidebar{
     width:89vw;
   }
 
   #chat-inner{
     padding-left:8px;
-
     padding-right:8px;
   }
 
@@ -1818,2927 +1047,932 @@ form#chatForm:focus-within{
 
   #sendBtn{
     width:36px;
-
     height:36px;
-
     min-width:36px;
   }
-
-  #voiceBtn{
-    padding:6px;
-
-    min-width:30px;
-  }
-
-  #attachBtn{
-    padding:6px;
-
-    min-width:30px;
-  }
-
-  #stopSpeechBtn{
-    padding:6px;
-
-    min-width:30px;
-  }
 }
-
 </style>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-
+<style>
+/* =========================================================
+   MARKDOWN STYLES
+   ========================================================= */
+.msg-content h1,.msg-content h2,.msg-content h3,
+.msg-content h4,.msg-content h5,.msg-content h6{
+  margin:12px 0 6px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text-primary);
+}
+.msg-content h1{font-size:1.3em;}
+.msg-content h2{font-size:1.15em;}
+.msg-content h3{font-size:1.05em;}
+.msg-content p{margin:6px 0;line-height:1.7;}
+.msg-content ul,.msg-content ol{
+  padding-right:20px;
+  margin:6px 0;
+}
+.msg-content li{margin:4px 0;line-height:1.6;}
+.msg-content table{
+  border-collapse:collapse;
+  width:100%;
+  margin:10px 0;
+  font-size:13px;
+}
+.msg-content th,.msg-content td{
+  border:1px solid var(--border);
+  padding:8px 12px;
+  text-align:right;
+}
+.msg-content th{
+  background:var(--bg-elevated);
+  font-weight:700;
+}
+.msg-content tr:nth-child(even){
+  background:rgba(255,255,255,.03);
+}
+.msg-content blockquote{
+  border-right:3px solid var(--accent);
+  padding:8px 12px;
+  margin:8px 0;
+  background:var(--accent-soft);
+  border-radius:4px;
+  color:var(--text-secondary);
+}
+.msg-content a{color:var(--accent);text-decoration:none;}
+.msg-content a:hover{text-decoration:underline;}
+.msg-content hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
+.msg-content strong{font-weight:700;color:var(--text-primary);}
+.msg-content em{font-style:italic;}
+</style>
 </head>
-
 
 <body>
 
-
-<!-- =====================================================
-     SIDEBAR OVERLAY
-     ===================================================== -->
-
+<!-- SIDEBAR OVERLAY -->
 <div id="sidebarOverlay"></div>
 
-
-<!-- =====================================================
-     SIDEBAR
-     ===================================================== -->
-
+<!-- SIDEBAR -->
 <aside id="sidebar">
 
   <div class="sidebar-header">
 
     <div class="brand">
-
-      <div class="brand-icon">
-        🤖
-      </div>
-
-      <div class="brand-name">
-        Wiam Dev ChatBot
-      </div>
-
+      <div class="brand-icon">🤖</div>
+      <div class="brand-name">Wiam Dev ChatBot</div>
     </div>
 
-
-    <button
-      class="new-chat-btn"
-      id="resetBtn"
-    >
-
+    <button class="new-chat-btn" id="resetBtn">
       <span>＋</span>
-
-      <span>
-        محادثة جديدة
-      </span>
-
+      <span>محادثة جديدة</span>
     </button>
-
   </div>
 
-
-  <!-- ===================================================
-       PREVIOUS CONVERSATIONS
-       =================================================== -->
-
-  <div class="sidebar-section-label">
-    المحادثات السابقة
-  </div>
-
+  <!-- PREVIOUS CONVERSATIONS -->
+  <div class="sidebar-section-label">المحادثات السابقة</div>
 
   <div id="conversationsList">
-
-    <div class="empty-hint">
-      لا توجد محادثات سابقة
-    </div>
-
+    <div class="empty-hint">لا توجد محادثات سابقة</div>
   </div>
 
-
-  <!-- ===================================================
-       KNOWLEDGE BASE
-       =================================================== -->
-
-  <div class="sidebar-section-label">
-    قاعدة المعرفة
-  </div>
-
+  <!-- KNOWLEDGE BASE -->
+  <div class="sidebar-section-label">قاعدة المعرفة</div>
 
   <div id="docsPanelSidebar">
 
-    <div
-      class="upload-zone"
-      id="uploadZone"
-    >
-
+    <div class="upload-zone" id="uploadZone">
       📎 اسحب ملفاً هنا أو اضغط للاختيار
-
       <br>
-
-      <span style="opacity:.7">
-        PDF · Word · صورة · txt
-      </span>
-
+      <span style="opacity:.7">PDF · Word · صورة · txt</span>
     </div>
 
-
-    <input
-      type="file"
-      id="fileInput"
-      accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.txt,.md"
-    />
-
+    <input type="file" id="fileInput" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.txt,.md" />
 
     <div id="docsList"></div>
 
   </div>
 
-
-  <div class="sidebar-footer">
-
-    يعمل عبر Groq API — gpt-oss-120b
-
-  </div>
+  <div class="sidebar-footer">يعمل عبر Groq API — gpt-oss-120b</div>
 
 </aside>
 
-
-<!-- =====================================================
-     MAIN
-     ===================================================== -->
-
+<!-- MAIN -->
 <div id="main">
 
-
-  <!-- ===================================================
-       TOP BAR
-       =================================================== -->
-
+  <!-- TOP BAR -->
   <div id="topbar">
-
-    <button
-      id="toggleSidebarBtn"
-      title="إظهار القائمة"
-      aria-label="إظهار القائمة"
-    >
-      ☰
-    </button>
-
-
+    <button id="toggleSidebarBtn" title="إظهار القائمة" aria-label="إظهار القائمة">☰</button>
     <div>
-
-      <div id="topbar-title">
-        المحادثة
-      </div>
-
+      <div id="topbar-title">المحادثة</div>
     </div>
-
   </div>
 
-
-  <!-- ===================================================
-       CHAT
-       =================================================== -->
-
+  <!-- CHAT -->
   <div id="chat">
-
     <div id="chat-inner">
-
       <div id="emptyState">
-
-        <div class="empty-icon">
-          🤖
-        </div>
-
-        <h2>
-          كيف يمكنني مساعدتك اليوم؟
-        </h2>
-
-        <p>
-          اسألني أي شيء، أو ارفع مستنداً
-          (PDF/Word/صورة) من القائمة الجانبية
-          لأجيب بناءً على محتواه.
-        </p>
-
+        <div class="empty-icon">🤖</div>
+        <h2>كيف يمكنني مساعدتك اليوم؟</h2>
+        <p>اسألني أي شيء، أو ارفع مستنداً (PDF/Word/صورة) من القائمة الجانبية لأجيب بناءً على محتواه.</p>
       </div>
-
     </div>
-
   </div>
 
-
-  <!-- ===================================================
-       INPUT
-       =================================================== -->
-
+  <!-- INPUT -->
   <div id="inputArea">
-
     <div id="inputWrap">
-
       <form id="chatForm">
-
-
-        <!-- ATTACH -->
-
-        <button
-          type="button"
-          id="attachBtn"
-          title="رفع مستند"
-        >
-          📎
-        </button>
-
-
-        <!-- VOICE INPUT -->
-
-        <button
-          type="button"
-          id="voiceBtn"
-          title="التحدث بالصوت"
-          aria-label="التحدث بالصوت"
-        >
-          🎤
-        </button>
-
-
-        <!-- STOP SPEECH -->
-
-        <button
-          type="button"
-          id="stopSpeechBtn"
-          title="إيقاف صوت البوت"
-          aria-label="إيقاف صوت البوت"
-        >
-          🔇
-        </button>
-
-
-        <!-- TEXT -->
-
-        <textarea
-          id="msgInput"
-          rows="1"
-          placeholder="اكتب رسالتك..."
-        ></textarea>
-
-
-        <!-- SEND -->
-
-        <button
-          id="sendBtn"
-          type="submit"
-          title="إرسال"
-        >
-          ➤
-        </button>
-
+        <button type="button" id="attachBtn" title="رفع مستند">📎</button>
+        <textarea id="msgInput" rows="1" placeholder="اكتب رسالتك..."></textarea>
+        <button id="sendBtn" type="submit" title="إرسال">➤</button>
       </form>
-
-
-      <div id="inputFootnote">
-        قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة
-      </div>
-
+      <div id="inputFootnote">قد يخطئ البوت أحياناً — تحقق من المعلومات المهمة</div>
     </div>
-
   </div>
 
 </div>
 
-
 <script>
-
 /* =========================================================
    ELEMENTS
    ========================================================= */
-
-const chatEl =
-  document.getElementById("chat");
-
-const chatInner =
-  document.getElementById("chat-inner");
-
-const form =
-  document.getElementById("chatForm");
-
-const input =
-  document.getElementById("msgInput");
-
-const sendBtn =
-  document.getElementById("sendBtn");
-
-const resetBtn =
-  document.getElementById("resetBtn");
-
-const toggleSidebarBtn =
-  document.getElementById("toggleSidebarBtn");
-
-const sidebar =
-  document.getElementById("sidebar");
-
-const sidebarOverlay =
-  document.getElementById("sidebarOverlay");
-
-const uploadZone =
-  document.getElementById("uploadZone");
-
-const fileInput =
-  document.getElementById("fileInput");
-
-const attachBtn =
-  document.getElementById("attachBtn");
-
-const voiceBtn =
-  document.getElementById("voiceBtn");
-
-const stopSpeechBtn =
-  document.getElementById("stopSpeechBtn");
-
-const docsList =
-  document.getElementById("docsList");
-
-const conversationsList =
-  document.getElementById(
-    "conversationsList"
-  );
-
+const chatEl = document.getElementById("chat");
+const chatInner = document.getElementById("chat-inner");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const resetBtn = document.getElementById("resetBtn");
+const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
+const sidebar = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+const uploadZone = document.getElementById("uploadZone");
+const fileInput = document.getElementById("fileInput");
+const attachBtn = document.getElementById("attachBtn");
+const docsList = document.getElementById("docsList");
+const conversationsList = document.getElementById("conversationsList");
 
 let hasStarted = false;
-
 
 /* =========================================================
    CONVERSATION STATE
    ========================================================= */
-
 let currentConversation = [];
-
-let currentConversationId =
-  Date.now();
-
+let currentConversationId = Date.now();
 let loadingConversation = false;
-
-
-/* =========================================================
-   VOICE STATE
-   ========================================================= */
-
-const SpeechRecognition =
-  window.SpeechRecognition ||
-  window.webkitSpeechRecognition;
-
-let recognition = null;
-
-let isListening = false;
-
-let isSpeaking = false;
-
 
 /* =========================================================
    ESCAPE HTML
    ========================================================= */
-
 function escapeHtml(str){
-
-  return String(str).replace(
-    /[&<>"']/g,
-    m => ({
-      '&':'&amp;',
-      '<':'&lt;',
-      '>':'&gt;',
-      '"':'&quot;',
-      "'":'&#39;'
-    }[m])
-  );
-
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[m]));
 }
-
 
 /* =========================================================
    MARKDOWN
    ========================================================= */
-
 function renderMarkdown(text){
-
-  if(!text){
-    return "";
-  }
-
+  if(!text) return "";
   marked.setOptions({
-
-    breaks:true,
-
-    gfm:true
-
+    breaks: true,
+    gfm: true,
   });
-
-  try{
-
-    return marked.parse(
-      String(text)
-    );
-
-  }catch(e){
-
-    return escapeHtml(text)
-      .replace(
-        /\n/g,
-        "<br>"
-      );
-
+  try {
+    return marked.parse(String(text));
+  } catch(e) {
+    return escapeHtml(text).replace(/\n/g, "<br>");
   }
-
 }
-
 
 /* =========================================================
    START CHAT
    ========================================================= */
-
 function ensureStarted(){
-
   if(!hasStarted){
-
-    const empty =
-      document.getElementById(
-        "emptyState"
-      );
-
+    const empty = document.getElementById("emptyState");
     if(empty){
       empty.remove();
     }
-
     hasStarted = true;
-
   }
-
 }
-
 
 /* =========================================================
    ADD MESSAGE
    ========================================================= */
-
-function addMessage(
-  text,
-  sender,
-  isError=false,
-  imageUrl=null
-){
-
+function addMessage(text, sender, isError=false, imageUrl=null){
   ensureStarted();
 
+  const row = document.createElement("div");
+  row.className = "msg-row " + sender;
 
-  const row =
-    document.createElement(
-      "div"
-    );
+  const avatar = document.createElement("div");
+  avatar.className = "avatar " + sender;
+  avatar.textContent = sender === "user" ? "🧑" : "🤖";
 
-  row.className =
-    "msg-row " + sender;
+  const body = document.createElement("div");
+  body.className = "msg-body";
 
+  const name = document.createElement("div");
+  name.className = "msg-name";
+  name.textContent = sender === "user" ? "أنت" : "المساعد";
 
-  const avatar =
-    document.createElement(
-      "div"
-    );
-
-  avatar.className =
-    "avatar " + sender;
-
-  avatar.textContent =
-    sender === "user"
-      ? "🧑"
-      : "🤖";
-
-
-  const body =
-    document.createElement(
-      "div"
-    );
-
-  body.className =
-    "msg-body";
-
-
-  const name =
-    document.createElement(
-      "div"
-    );
-
-  name.className =
-    "msg-name";
-
-  name.textContent =
-    sender === "user"
-      ? "أنت"
-      : "المساعد";
-
-
-  const content =
-    document.createElement(
-      "div"
-    );
-
-  content.className =
-    "msg-content" +
-    (isError ? " error" : "");
-
-
-  content.innerHTML =
-    renderMarkdown(text);
-
+  const content = document.createElement("div");
+  content.className = "msg-content" + (isError ? " error" : "");
+  content.innerHTML = renderMarkdown(text);
 
   body.appendChild(name);
-
   body.appendChild(content);
 
-
-  /* =====================================================
-     IMAGE
-     ===================================================== */
-
+  /* IMAGE */
   if(imageUrl){
+    const imgWrap = document.createElement("div");
+    imgWrap.className = "msg-image";
+    imgWrap.innerHTML = '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
 
-    const imgWrap =
-      document.createElement(
-        "div"
-      );
+    const img = document.createElement("img");
+    img.alt = "صورة مولّدة";
 
-    imgWrap.className =
-      "msg-image";
+    img.onload = () => {
+      imgWrap.innerHTML = "";
+      imgWrap.appendChild(img);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    };
 
-    imgWrap.innerHTML =
-      '<div class="img-loading">⏳ جارٍ تحميل الصورة...</div>';
+    img.onerror = () => {
+      imgWrap.innerHTML = '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>';
+    };
 
+    img.src = imageUrl;
 
-    const img =
-      document.createElement(
-        "img"
-      );
-
-    img.alt =
-      "صورة مولّدة";
-
-
-    img.onload =
-      () => {
-
-        imgWrap.innerHTML =
-          "";
-
-        imgWrap.appendChild(
-          img
-        );
-
-        chatEl.scrollTop =
-          chatEl.scrollHeight;
-
-      };
-
-
-    img.onerror =
-      () => {
-
-        imgWrap.innerHTML =
-          '<div class="img-loading">تعذر تحميل الصورة، جرّب فتح الرابط مباشرة</div>';
-
-      };
-
-
-    img.src =
-      imageUrl;
-
-
-    if(
-      img.complete &&
-      img.naturalWidth > 0
-    ){
-
+    if(img.complete && img.naturalWidth > 0){
       img.onload();
-
     }
 
-
-    body.appendChild(
-      imgWrap
-    );
-
+    body.appendChild(imgWrap);
   }
 
+  row.appendChild(avatar);
+  row.appendChild(body);
+  chatInner.appendChild(row);
 
-  row.appendChild(
-    avatar
-  );
-
-  row.appendChild(
-    body
-  );
-
-
-  /* =====================================================
-     SAVE MESSAGE
-     ===================================================== */
-
+  /* لا نسجل الرسائل مرة أخرى أثناء تحميل محادثة محفوظة */
   if(!loadingConversation){
-
     currentConversation.push({
-
-      text:text,
-
-      sender:sender,
-
-      error:isError,
-
-      imageUrl:
-        imageUrl || null
-
+      text: text,
+      sender: sender,
+      error: isError,
+      imageUrl: imageUrl || null
     });
-
   }
 
+  /* النزول لآخر رسالة */
+  requestAnimationFrame(() => {
+    chatEl.scrollTo({
+      top: chatEl.scrollHeight,
+      behavior: "smooth"
+    });
+  });
 
-  /* =====================================================
-     SCROLL
-     ===================================================== */
-
-  requestAnimationFrame(
-    () => {
-
-      chatEl.scrollTo({
-
-        top:
-          chatEl.scrollHeight,
-
-        behavior:
-          "smooth"
-
-      });
-
-    }
-  );
-
-
-  return {
-
-    row,
-
-    content
-
-  };
-
+  return { row, content };
 }
-
 
 /* =========================================================
    SOURCES
    ========================================================= */
-
-function addSourcesNote(
-  container,
-  sources
-){
-
-  if(
-    !sources ||
-    sources.length === 0
-  ){
-
+function addSourcesNote(container, sources){
+  if(!sources || sources.length === 0){
     return;
-
   }
 
+  const div = document.createElement("div");
+  div.className = "sources-note";
+  div.textContent = "📎 المصادر: " + sources.join("، ");
 
-  const div =
-    document.createElement(
-      "div"
-    );
-
-
-  div.className =
-    "sources-note";
-
-
-  div.textContent =
-    "📎 المصادر: " +
-    sources.join("، ");
-
-
-  container.appendChild(
-    div
-  );
-
-
-  chatEl.scrollTop =
-    chatEl.scrollHeight;
-
+  container.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
 }
-
 
 /* =========================================================
    TYPING
    ========================================================= */
-
 function addTyping(){
-
   ensureStarted();
 
-
-  const row =
-    document.createElement(
-      "div"
-    );
-
-
-  row.className =
-    "msg-row bot";
-
-
-  row.id =
-    "typingRow";
-
+  const row = document.createElement("div");
+  row.className = "msg-row bot";
+  row.id = "typingRow";
 
   row.innerHTML = `
-
-    <div class="avatar bot">
-      🤖
-    </div>
-
+    <div class="avatar bot">🤖</div>
     <div class="msg-body">
-
-      <div class="msg-name">
-        المساعد
-      </div>
-
+      <div class="msg-name">المساعد</div>
       <div class="typing-dots">
-
         <span></span>
         <span></span>
         <span></span>
-
       </div>
-
     </div>
-
   `;
 
-
-  chatInner.appendChild(
-    row
-  );
-
-
-  chatEl.scrollTop =
-    chatEl.scrollHeight;
-
+  chatInner.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
 }
-
 
 function removeTyping(){
-
-  const el =
-    document.getElementById(
-      "typingRow"
-    );
-
+  const el = document.getElementById("typingRow");
   if(el){
-
     el.remove();
-
   }
-
 }
 
-
 /* =========================================================
-   VOICE INPUT
+   SIDEBAR FUNCTIONS
    ========================================================= */
-
-if(SpeechRecognition){
-
-  recognition =
-    new SpeechRecognition();
-
-
-  /*
-     اللغة الجزائرية / العربية
-  */
-
-  recognition.lang =
-    "ar-DZ";
-
-
-  recognition.continuous =
-    false;
-
-
-  recognition.interimResults =
-    true;
-
-
-  recognition.maxAlternatives =
-    1;
-
-
-  recognition.onstart =
-    () => {
-
-      isListening =
-        true;
-
-
-      voiceBtn.classList.add(
-        "listening"
-      );
-
-
-      voiceBtn.textContent =
-        "🔴";
-
-
-      voiceBtn.title =
-        "إيقاف التسجيل";
-
-
-      input.placeholder =
-        "تحدث الآن...";
-
-    };
-
-
-  recognition.onresult =
-    event => {
-
-      let finalText =
-        "";
-
-      let interimText =
-        "";
-
-
-      for(
-        let i =
-          event.resultIndex;
-
-        i <
-          event.results.length;
-
-        i++
-      ){
-
-        const transcript =
-          event.results[i][0]
-            .transcript;
-
-
-        if(
-          event.results[i]
-            .isFinal
-        ){
-
-          finalText +=
-            transcript;
-
-        }else{
-
-          interimText +=
-            transcript;
-
-        }
-
-      }
-
-
-      /*
-         النص النهائي
-      */
-
-      if(finalText){
-
-        const oldText =
-          input.value.trim();
-
-
-        input.value =
-          (
-            oldText +
-            " " +
-            finalText.trim()
-          ).trim();
-
-
-        input.dispatchEvent(
-          new Event("input")
-        );
-
-      }
-
-
-      /*
-         عرض الكلام المؤقت
-      */
-
-      if(interimText){
-
-        input.placeholder =
-          interimText;
-
-      }
-
-    };
-
-
-  recognition.onerror =
-    event => {
-
-      console.error(
-        "Speech recognition error:",
-        event.error
-      );
-
-
-      if(
-        event.error ===
-        "not-allowed"
-      ){
-
-        alert(
-          "يجب السماح للموقع باستخدام الميكروفون."
-        );
-
-      }
-
-
-      else if(
-        event.error ===
-        "no-speech"
-      ){
-
-        input.placeholder =
-          "لم يتم اكتشاف كلام، حاول مرة أخرى";
-
-      }
-
-
-      else if(
-        event.error ===
-        "audio-capture"
-      ){
-
-        alert(
-          "لم يتم العثور على ميكروفون."
-        );
-
-      }
-
-
-      stopVoiceRecognition();
-
-    };
-
-
-  recognition.onend =
-    () => {
-
-      stopVoiceRecognition();
-
-    };
-
-}else{
-
-  voiceBtn.disabled =
-    true;
-
-
-  voiceBtn.title =
-    "التعرف على الصوت غير مدعوم في هذا المتصفح";
-
-
-  voiceBtn.style.opacity =
-    ".4";
-
-}
-
-
-/* =========================================================
-   START VOICE
-   ========================================================= */
-
-function startVoiceRecognition(){
-
-  if(!recognition){
-
-    return;
-
-  }
-
-
-  if(isListening){
-
-    stopVoiceRecognition();
-
-    return;
-
-  }
-
-
-  /*
-     إيقاف قراءة البوت إذا بدأ المستخدم بالكلام
-  */
-
-  stopSpeaking();
-
-
-  try{
-
-    recognition.start();
-
-  }catch(error){
-
-    console.error(
-      "Could not start recognition:",
-      error
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   STOP VOICE
-   ========================================================= */
-
-function stopVoiceRecognition(){
-
-  isListening =
-    false;
-
-
-  voiceBtn.classList.remove(
-    "listening"
-  );
-
-
-  voiceBtn.textContent =
-    "🎤";
-
-
-  voiceBtn.title =
-    "التحدث بالصوت";
-
-
-  input.placeholder =
-    "اكتب رسالتك...";
-
-}
-
-
-/* =========================================================
-   VOICE BUTTON
-   ========================================================= */
-
-voiceBtn.addEventListener(
-  "click",
-  () => {
-
-    if(isListening){
-
-      try{
-
-        recognition.stop();
-
-      }catch(error){
-
-        console.error(error);
-
-      }
-
-    }else{
-
-      startVoiceRecognition();
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   VOICE OUTPUT
-   ========================================================= */
-
-function cleanTextForSpeech(text){
-
-  if(!text){
-
-    return "";
-
-  }
-
-
-  let clean =
-    String(text);
-
-
-  /*
-     إزالة أكواد Markdown
-  */
-
-  clean =
-    clean.replace(
-      /```[\s\S]*?```/g,
-      " "
-    );
-
-
-  clean =
-    clean.replace(
-      /`([^`]+)`/g,
-      "$1"
-    );
-
-
-  /*
-     إزالة الصور
-  */
-
-  clean =
-    clean.replace(
-      /!\[.*?\]\(.*?\)/g,
-      " "
-    );
-
-
-  /*
-     إزالة روابط Markdown
-  */
-
-  clean =
-    clean.replace(
-      /\[([^\]]+)\]\(.*?\)/g,
-      "$1"
-    );
-
-
-  /*
-     إزالة رموز Markdown
-  */
-
-  clean =
-    clean.replace(
-      /[*_~>#]/g,
-      ""
-    );
-
-
-  /*
-     تحويل الأسطر إلى فواصل
-  */
-
-  clean =
-    clean.replace(
-      /\n+/g,
-      ". "
-    );
-
-
-  /*
-     إزالة مسافات زائدة
-  */
-
-  clean =
-    clean.replace(
-      /\s+/g,
-      " "
-    );
-
-
-  return clean.trim();
-
-}
-
-
-/* =========================================================
-   SPEAK
-   ========================================================= */
-
-function speakText(text){
-
-  if(
-    !("speechSynthesis" in window)
-  ){
-
-    return;
-
-  }
-
-
-  const cleanText =
-    cleanTextForSpeech(text);
-
-
-  if(!cleanText){
-
-    return;
-
-  }
-
-
-  /*
-     إيقاف أي قراءة قديمة
-  */
-
-  window.speechSynthesis.cancel();
-
-
-  const utterance =
-    new SpeechSynthesisUtterance(
-      cleanText
-    );
-
-
-  /*
-     العربية
-  */
-
-  utterance.lang =
-    "ar-SA";
-
-
-  /*
-     السرعة
-  */
-
-  utterance.rate =
-    0.95;
-
-
-  /*
-     النبرة
-  */
-
-  utterance.pitch =
-    1;
-
-
-  /*
-     الصوت
-  */
-
-  utterance.volume =
-    1;
-
-
-  utterance.onstart =
-    () => {
-
-      isSpeaking =
-        true;
-
-
-      stopSpeechBtn.classList.add(
-        "visible"
-      );
-
-    };
-
-
-  utterance.onend =
-    () => {
-
-      isSpeaking =
-        false;
-
-
-      stopSpeechBtn.classList.remove(
-        "visible"
-      );
-
-    };
-
-
-  utterance.onerror =
-    () => {
-
-      isSpeaking =
-        false;
-
-
-      stopSpeechBtn.classList.remove(
-        "visible"
-      );
-
-    };
-
-
-  window.speechSynthesis.speak(
-    utterance
-  );
-
-}
-
-
-/* =========================================================
-   STOP SPEAKING
-   ========================================================= */
-
-function stopSpeaking(){
-
-  if(
-    "speechSynthesis" in window
-  ){
-
-    window.speechSynthesis.cancel();
-
-  }
-
-
-  isSpeaking =
-    false;
-
-
-  stopSpeechBtn.classList.remove(
-    "visible"
-  );
-
-}
-
-
-/* =========================================================
-   STOP SPEECH BUTTON
-   ========================================================= */
-
-stopSpeechBtn.addEventListener(
-  "click",
-  stopSpeaking
-);
-
-
-/* =========================================================
-   SIDEBAR
-   ========================================================= */
-
 function openSidebar(){
+  sidebar.classList.remove("collapsed");
 
-  sidebar.classList.remove(
-    "collapsed"
-  );
-
-
-  if(
-    window.innerWidth <= 760
-  ){
-
-    sidebarOverlay.classList.add(
-      "active"
-    );
-
-    document.body.style.overflow =
-      "hidden";
-
+  if(window.innerWidth <= 760){
+    sidebarOverlay.classList.add("active");
+    document.body.style.overflow = "hidden";
   }
-
 }
-
 
 function closeSidebar(){
-
-  sidebar.classList.add(
-    "collapsed"
-  );
-
-
-  sidebarOverlay.classList.remove(
-    "active"
-  );
-
-
-  document.body.style.overflow =
-    "hidden";
-
+  sidebar.classList.add("collapsed");
+  sidebarOverlay.classList.remove("active");
+  document.body.style.overflow = "hidden";
 }
 
-
-toggleSidebarBtn.addEventListener(
-  "click",
-  () => {
-
-    if(
-      sidebar.classList.contains(
-        "collapsed"
-      )
-    ){
-
-      openSidebar();
-
-    }else{
-
-      closeSidebar();
-
-    }
-
+toggleSidebarBtn.addEventListener("click", () => {
+  if(sidebar.classList.contains("collapsed")){
+    openSidebar();
+  } else {
+    closeSidebar();
   }
-);
-
+});
 
 /* =========================================================
    CLICK OUTSIDE
    ========================================================= */
-
-sidebarOverlay.addEventListener(
-  "click",
-  closeSidebar
-);
-
+sidebarOverlay.addEventListener("click", closeSidebar);
 
 /* =========================================================
-   SIDEBAR SWIPE
+   SWIPE SIDEBAR
    ========================================================= */
-
 let sidebarTouchStartX = 0;
-
 let sidebarTouchStartY = 0;
-
 let sidebarTouchCurrentX = 0;
 
-let sidebarTouchCurrentY = 0;
-
-
-sidebar.addEventListener(
-  "touchstart",
-  e => {
-
-    if(
-      window.innerWidth > 760
-    ){
-
-      return;
-
-    }
-
-
-    sidebarTouchStartX =
-      e.touches[0].clientX;
-
-
-    sidebarTouchStartY =
-      e.touches[0].clientY;
-
-
-    sidebarTouchCurrentX =
-      sidebarTouchStartX;
-
-
-    sidebarTouchCurrentY =
-      sidebarTouchStartY;
-
-  },
-  {
-    passive:true
+sidebar.addEventListener("touchstart", e => {
+  if(window.innerWidth > 760){
+    return;
   }
-);
+  sidebarTouchStartX = e.touches[0].clientX;
+  sidebarTouchStartY = e.touches[0].clientY;
+  sidebarTouchCurrentX = sidebarTouchStartX;
+}, { passive:true });
 
-
-sidebar.addEventListener(
-  "touchmove",
-  e => {
-
-    if(
-      window.innerWidth > 760
-    ){
-
-      return;
-
-    }
-
-
-    sidebarTouchCurrentX =
-      e.touches[0].clientX;
-
-
-    sidebarTouchCurrentY =
-      e.touches[0].clientY;
-
-  },
-  {
-    passive:true
+sidebar.addEventListener("touchmove", e => {
+  if(window.innerWidth > 760){
+    return;
   }
-);
+  sidebarTouchCurrentX = e.touches[0].clientX;
+}, { passive:true });
 
-
-sidebar.addEventListener(
-  "touchend",
-  () => {
-
-    if(
-      window.innerWidth > 760
-    ){
-
-      return;
-
-    }
-
-
-    const deltaX =
-      sidebarTouchCurrentX -
-      sidebarTouchStartX;
-
-
-    const deltaY =
-      Math.abs(
-        sidebarTouchCurrentY -
-        sidebarTouchStartY
-      );
-
-
-    if(
-      deltaX > 70 &&
-      deltaY < 100
-    ){
-
-      closeSidebar();
-
-    }
-
+sidebar.addEventListener("touchend", () => {
+  if(window.innerWidth > 760){
+    return;
   }
-);
 
+  const deltaX = sidebarTouchCurrentX - sidebarTouchStartX;
+  const deltaY = Math.abs(sidebarTouchStartY - eventLastY());
+
+  /* سحب القائمة إلى اليمين = إغلاق */
+  if(deltaX > 70 && deltaY < 100){
+    closeSidebar();
+  }
+});
+
+/* آخر Y للمساعدة في تحديد اتجاه السحب */
+let lastTouchY = 0;
+
+function eventLastY(){
+  return lastTouchY;
+}
+
+sidebar.addEventListener("touchmove", e => {
+  if(e.touches.length){
+    lastTouchY = e.touches[0].clientY;
+  }
+}, { passive:true });
 
 /* =========================================================
-   EDGE SWIPE TO OPEN
+   SWIPE FROM RIGHT EDGE TO OPEN
    ========================================================= */
-
 let edgeStartX = 0;
-
 let edgeStartY = 0;
 
-
-document.addEventListener(
-  "touchstart",
-  e => {
-
-    if(
-      window.innerWidth > 760
-    ){
-
-      return;
-
-    }
-
-
-    if(
-      !sidebar.classList.contains(
-        "collapsed"
-      )
-    ){
-
-      return;
-
-    }
-
-
-    const touch =
-      e.touches[0];
-
-
-    if(
-      touch.clientX >
-      window.innerWidth - 35
-    ){
-
-      edgeStartX =
-        touch.clientX;
-
-
-      edgeStartY =
-        touch.clientY;
-
-    }else{
-
-      edgeStartX =
-        0;
-
-    }
-
-  },
-  {
-    passive:true
+document.addEventListener("touchstart", e => {
+  if(window.innerWidth > 760){
+    return;
   }
-);
-
-
-document.addEventListener(
-  "touchend",
-  e => {
-
-    if(
-      window.innerWidth > 760
-    ){
-
-      return;
-
-    }
-
-
-    if(!edgeStartX){
-
-      return;
-
-    }
-
-
-    const touch =
-      e.changedTouches[0];
-
-
-    const deltaX =
-      edgeStartX -
-      touch.clientX;
-
-
-    const deltaY =
-      Math.abs(
-        touch.clientY -
-        edgeStartY
-      );
-
-
-    if(
-      deltaX > 70 &&
-      deltaY < 100
-    ){
-
-      openSidebar();
-
-    }
-
-
-    edgeStartX =
-      0;
-
-  },
-  {
-    passive:true
+  if(!sidebar.classList.contains("collapsed")){
+    return;
   }
-);
 
+  const touch = e.touches[0];
+
+  /* بداية اللمس يجب أن تكون قريبة من الحافة اليمنى */
+  if(touch.clientX > window.innerWidth - 35){
+    edgeStartX = touch.clientX;
+    edgeStartY = touch.clientY;
+  } else {
+    edgeStartX = 0;
+  }
+}, { passive:true });
+
+document.addEventListener("touchend", e => {
+  if(window.innerWidth > 760){
+    return;
+  }
+  if(!edgeStartX){
+    return;
+  }
+
+  const touch = e.changedTouches[0];
+  const deltaX = edgeStartX - touch.clientX;
+  const deltaY = Math.abs(touch.clientY - edgeStartY);
+
+  /* من الحافة اليمنى نحو اليسار */
+  if(deltaX > 70 && deltaY < 100){
+    openSidebar();
+  }
+
+  edgeStartX = 0;
+}, { passive:true });
 
 /* =========================================================
    CONVERSATION STORAGE
    ========================================================= */
-
-const STORAGE_KEY =
-  "wiam_dev_chat_conversations";
-
+const STORAGE_KEY = "wiam_dev_chat_conversations";
 
 function getSavedConversations(){
-
   try{
-
-    return JSON.parse(
-      localStorage.getItem(
-        STORAGE_KEY
-      )
-    ) || [];
-
-  }catch(error){
-
-    console.error(
-      "Conversation storage error:",
-      error
-    );
-
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  }
+  catch(error){
+    console.error("Conversation storage error:", error);
     return [];
-
   }
-
 }
 
-
-function saveConversations(
-  conversations
-){
-
+function saveConversations(conversations){
   try{
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        conversations
-      )
-    );
-
-  }catch(error){
-
-    console.error(
-      "Could not save conversations:",
-      error
-    );
-
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
   }
-
+  catch(error){
+    console.error("Could not save conversations:", error);
+  }
 }
-
 
 /* =========================================================
    SAVE CURRENT CONVERSATION
    ========================================================= */
-
 function saveCurrentConversation(){
-
-  if(
-    currentConversation.length === 0
-  ){
-
+  if(currentConversation.length === 0){
     return;
-
   }
 
+  const conversations = getSavedConversations();
 
-  const conversations =
-    getSavedConversations();
+  const firstUserMessage = currentConversation.find(message => message.sender === "user");
 
+  let title = firstUserMessage ? firstUserMessage.text : "محادثة جديدة";
 
-  const firstUserMessage =
-    currentConversation.find(
-      message =>
-        message.sender ===
-        "user"
-    );
-
-
-  let title =
-    firstUserMessage
-      ? firstUserMessage.text
-      : "محادثة جديدة";
-
-
-  title =
-    String(title)
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .trim();
-
+  title = String(title).replace(/\s+/g, " ").trim();
 
   if(title.length > 40){
-
-    title =
-      title.substring(
-        0,
-        40
-      ) +
-      "...";
-
+    title = title.substring(0, 40) + "...";
   }
-
 
   const conversation = {
-
-    id:
-      currentConversationId,
-
-    title:
-      title || "محادثة جديدة",
-
-    messages:
-      currentConversation,
-
-    date:
-      new Date().toISOString()
-
+    id: currentConversationId,
+    title: title || "محادثة جديدة",
+    messages: currentConversation,
+    date: new Date().toISOString()
   };
 
-
-  const existingIndex =
-    conversations.findIndex(
-      item =>
-        item.id ===
-        currentConversationId
-    );
-
+  const existingIndex = conversations.findIndex(item => item.id === currentConversationId);
 
   if(existingIndex !== -1){
-
-    conversations[
-      existingIndex
-    ] =
-      conversation;
-
-  }else{
-
-    conversations.unshift(
-      conversation
-    );
-
+    conversations[existingIndex] = conversation;
+  } else {
+    conversations.unshift(conversation);
   }
 
+  /* الاحتفاظ بآخر 30 محادثة */
+  const limited = conversations.slice(0, 30);
 
-  /*
-     آخر 30 محادثة
-  */
-
-  const limited =
-    conversations.slice(
-      0,
-      30
-    );
-
-
-  saveConversations(
-    limited
-  );
-
-
+  saveConversations(limited);
   renderConversationList();
-
 }
-
 
 /* =========================================================
    RENDER CONVERSATIONS
    ========================================================= */
-
 function renderConversationList(){
+  const conversations = getSavedConversations();
 
-  const conversations =
-    getSavedConversations();
+  conversationsList.innerHTML = "";
 
-
-  conversationsList.innerHTML =
-    "";
-
-
-  if(
-    conversations.length === 0
-  ){
-
-    conversationsList.innerHTML =
-      '<div class="empty-hint">لا توجد محادثات سابقة</div>';
-
+  if(conversations.length === 0){
+    conversationsList.innerHTML = '<div class="empty-hint">لا توجد محادثات سابقة</div>';
     return;
-
   }
 
+  conversations.forEach(conversation => {
+    const item = document.createElement("div");
+    item.className = "conversation-item";
 
-  conversations.forEach(
-    conversation => {
-
-      const item =
-        document.createElement(
-          "div"
-        );
-
-
-      item.className =
-        "conversation-item";
-
-
-      if(
-        conversation.id ===
-        currentConversationId
-      ){
-
-        item.classList.add(
-          "active"
-        );
-
-      }
-
-
-      const icon =
-        document.createElement(
-          "span"
-        );
-
-
-      icon.className =
-        "conversation-icon";
-
-
-      icon.textContent =
-        "💬";
-
-
-      const title =
-        document.createElement(
-          "span"
-        );
-
-
-      title.className =
-        "conversation-title";
-
-
-      title.textContent =
-        conversation.title ||
-        "محادثة";
-
-
-      const deleteBtn =
-        document.createElement(
-          "button"
-        );
-
-
-      deleteBtn.className =
-        "conversation-delete";
-
-
-      deleteBtn.textContent =
-        "✕";
-
-
-      deleteBtn.title =
-        "حذف المحادثة";
-
-
-      deleteBtn.addEventListener(
-        "click",
-        e => {
-
-          e.stopPropagation();
-
-
-          deleteConversation(
-            conversation.id
-          );
-
-        }
-      );
-
-
-      item.appendChild(
-        icon
-      );
-
-      item.appendChild(
-        title
-      );
-
-      item.appendChild(
-        deleteBtn
-      );
-
-
-      item.addEventListener(
-        "click",
-        () => {
-
-          loadConversation(
-            conversation.id
-          );
-
-        }
-      );
-
-
-      conversationsList.appendChild(
-        item
-      );
-
+    if(conversation.id === currentConversationId){
+      item.classList.add("active");
     }
-  );
 
+    const icon = document.createElement("span");
+    icon.className = "conversation-icon";
+    icon.textContent = "💬";
+
+    const title = document.createElement("span");
+    title.className = "conversation-title";
+    title.textContent = conversation.title || "محادثة";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "conversation-delete";
+    deleteBtn.textContent = "✕";
+    deleteBtn.title = "حذف المحادثة";
+
+    deleteBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      deleteConversation(conversation.id);
+    });
+
+    item.appendChild(icon);
+    item.appendChild(title);
+    item.appendChild(deleteBtn);
+
+    item.addEventListener("click", () => {
+      loadConversation(conversation.id);
+    });
+
+    conversationsList.appendChild(item);
+  });
 }
-
 
 /* =========================================================
    LOAD OLD CONVERSATION
    ========================================================= */
-
 function loadConversation(id){
-
-  const conversations =
-    getSavedConversations();
-
-
-  const conversation =
-    conversations.find(
-      item =>
-        item.id === id
-    );
-
+  const conversations = getSavedConversations();
+  const conversation = conversations.find(item => item.id === id);
 
   if(!conversation){
-
     return;
-
   }
 
+  /* منع addMessage من حفظ الرسائل مرة ثانية */
+  loadingConversation = true;
 
-  /*
-     إيقاف الصوت عند فتح محادثة
-  */
+  currentConversationId = conversation.id;
+  currentConversation = Array.isArray(conversation.messages) ? conversation.messages : [];
 
-  stopSpeaking();
+  chatInner.innerHTML = "";
+  hasStarted = false;
 
+  currentConversation.forEach(message => {
+    addMessage(message.text, message.sender, message.error || false, message.imageUrl || null);
+  });
 
-  loadingConversation =
-    true;
-
-
-  currentConversationId =
-    conversation.id;
-
-
-  currentConversation =
-    Array.isArray(
-      conversation.messages
-    )
-      ? conversation.messages
-      : [];
-
-
-  chatInner.innerHTML =
-    "";
-
-
-  hasStarted =
-    false;
-
-
-  currentConversation.forEach(
-    message => {
-
-      addMessage(
-        message.text,
-        message.sender,
-        message.error || false,
-        message.imageUrl || null
-      );
-
-    }
-  );
-
-
-  loadingConversation =
-    false;
-
-
-  hasStarted =
-    true;
-
+  loadingConversation = false;
+  hasStarted = true;
 
   renderConversationList();
-
-
   closeSidebar();
 
-
-  requestAnimationFrame(
-    () => {
-
-      chatEl.scrollTo({
-
-        top:
-          chatEl.scrollHeight,
-
-        behavior:
-          "smooth"
-
-      });
-
-    }
-  );
-
+  requestAnimationFrame(() => {
+    chatEl.scrollTo({
+      top: chatEl.scrollHeight,
+      behavior: "smooth"
+    });
+  });
 }
-
 
 /* =========================================================
    DELETE CONVERSATION
    ========================================================= */
-
 function deleteConversation(id){
+  const conversations = getSavedConversations();
+  const filtered = conversations.filter(conversation => conversation.id !== id);
 
-  const conversations =
-    getSavedConversations();
+  saveConversations(filtered);
 
-
-  const filtered =
-    conversations.filter(
-      conversation =>
-        conversation.id !== id
-    );
-
-
-  saveConversations(
-    filtered
-  );
-
-
-  if(
-    id ===
-    currentConversationId
-  ){
-
+  /* إذا حذف المستخدم المحادثة الحالية */
+  if(id === currentConversationId){
     startNewConversation();
-
   }
 
-
   renderConversationList();
-
 }
-
 
 /* =========================================================
    NEW CONVERSATION
    ========================================================= */
-
 async function startNewConversation(){
-
-  /*
-     إيقاف الصوت
-  */
-
-  stopSpeaking();
-
-
-  /*
-     إيقاف الاستماع
-  */
-
-  if(
-    isListening &&
-    recognition
-  ){
-
-    try{
-
-      recognition.stop();
-
-    }catch(error){
-
-      console.error(error);
-
-    }
-
-  }
-
-
-  /*
-     حفظ القديمة
-  */
-
+  /* حفظ المحادثة السابقة */
   saveCurrentConversation();
 
-
-  /*
-     Reset backend
-  */
-
+  /* reset backend */
   try{
-
-    await fetch(
-      "/api/reset",
-      {
-        method:"POST"
-      }
-    );
-
-  }catch(error){
-
-    console.error(
-      "Reset error:",
-      error
-    );
-
+    await fetch("/api/reset", { method:"POST" });
+  }
+  catch(error){
+    console.error("Reset error:", error);
   }
 
+  /* تنظيف المحادثة */
+  chatInner.innerHTML = "";
 
-  /*
-     تنظيف
-  */
-
-  chatInner.innerHTML =
-    "";
-
-
-  const newEmptyState =
-    document.createElement(
-      "div"
-    );
-
-
-  newEmptyState.id =
-    "emptyState";
-
+  const newEmptyState = document.createElement("div");
+  newEmptyState.id = "emptyState";
 
   newEmptyState.innerHTML = `
-
-    <div class="empty-icon">
-      🤖
-    </div>
-
-    <h2>
-      كيف يمكنني مساعدتك اليوم؟
-    </h2>
-
-    <p>
-      اسألني أي شيء، أو ارفع مستنداً
-      (PDF/Word/صورة) من القائمة الجانبية
-      لأجيب بناءً على محتواه.
-    </p>
-
+    <div class="empty-icon">🤖</div>
+    <h2>كيف يمكنني مساعدتك اليوم؟</h2>
+    <p>اسألني أي شيء، أو ارفع مستنداً (PDF/Word/صورة) من القائمة الجانبية لأجيب بناءً على محتواه.</p>
   `;
 
+  chatInner.appendChild(newEmptyState);
 
-  chatInner.appendChild(
-    newEmptyState
-  );
-
-
-  hasStarted =
-    false;
-
-
-  currentConversation =
-    [];
-
-
-  currentConversationId =
-    Date.now();
-
+  hasStarted = false;
+  currentConversation = [];
+  currentConversationId = Date.now();
 
   renderConversationList();
-
-
   closeSidebar();
 
-
   input.focus();
-
 }
 
-
-resetBtn.addEventListener(
-  "click",
-  startNewConversation
-);
-
+resetBtn.addEventListener("click", startNewConversation);
 
 /* =========================================================
    TEXTAREA AUTO RESIZE
    ========================================================= */
-
-input.addEventListener(
-  "input",
-  () => {
-
-    input.style.height =
-      "auto";
-
-
-    input.style.height =
-      Math.min(
-        input.scrollHeight,
-        160
-      ) + "px";
-
-  }
-);
-
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 160) + "px";
+});
 
 /* =========================================================
    ENTER TO SEND
    ========================================================= */
-
-input.addEventListener(
-  "keydown",
-  e => {
-
-    if(
-      e.key === "Enter" &&
-      !e.shiftKey
-    ){
-
-      e.preventDefault();
-
-      form.requestSubmit();
-
-    }
-
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    form.requestSubmit();
   }
-);
-
+});
 
 /* =========================================================
    SEND MESSAGE
    ========================================================= */
+form.addEventListener("submit", async e => {
+  e.preventDefault();
 
-form.addEventListener(
-  "submit",
-  async e => {
+  const text = input.value.trim();
 
-    e.preventDefault();
-
-
-    const text =
-      input.value.trim();
-
-
-    if(!text){
-
-      return;
-
-    }
-
-
-    /*
-       إذا كان الصوت يعمل أوقفه
-    */
-
-    stopSpeaking();
-
-
-    /*
-       إيقاف التسجيل
-    */
-
-    if(
-      isListening &&
-      recognition
-    ){
-
-      try{
-
-        recognition.stop();
-
-      }catch(error){
-
-        console.error(error);
-
-      }
-
-    }
-
-
-    /*
-       USER MESSAGE
-    */
-
-    addMessage(
-      text,
-      "user"
-    );
-
-
-    input.value =
-      "";
-
-
-    input.style.height =
-      "auto";
-
-
-    sendBtn.disabled =
-      true;
-
-
-    addTyping();
-
-
-    try{
-
-      const res =
-        await fetch(
-          "/api/chat",
-          {
-
-            method:"POST",
-
-            headers:{
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify({
-
-                message:text
-
-              })
-
-          }
-        );
-
-
-      const data =
-        await res.json();
-
-
-      removeTyping();
-
-
-      if(!res.ok){
-
-        addMessage(
-          data.error ||
-          "حدث خطأ غير متوقع",
-
-          "bot",
-
-          true
-        );
-
-      }else{
-
-        const result =
-          addMessage(
-
-            data.answer,
-
-            "bot",
-
-            false,
-
-            data.image_url ||
-            null
-
-          );
-
-
-        addSourcesNote(
-          result.content,
-          data.sources
-        );
-
-
-        /*
-           🔊 قراءة إجابة البوت
-        */
-
-        speakText(
-          data.answer
-        );
-
-      }
-
-
-      /*
-         حفظ المحادثة
-      */
-
-      saveCurrentConversation();
-
-    }catch(error){
-
-      console.error(
-        error
-      );
-
-
-      removeTyping();
-
-
-      addMessage(
-        "تعذر الاتصال بالسيرفر",
-        "bot",
-        true
-      );
-
-
-      saveCurrentConversation();
-
-    }finally{
-
-      sendBtn.disabled =
-        false;
-
-
-      input.focus();
-
-    }
-
+  if(!text){
+    return;
   }
-);
 
+  /* رسالة المستخدم */
+  addMessage(text, "user");
+
+  input.value = "";
+  input.style.height = "auto";
+
+  sendBtn.disabled = true;
+
+  addTyping();
+
+  try{
+    const res = await fetch("/api/chat", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+
+    removeTyping();
+
+    if(!res.ok){
+      addMessage(data.error || "حدث خطأ غير متوقع", "bot", true);
+    }
+    else{
+      const result = addMessage(data.answer, "bot", false, data.image_url || null);
+      addSourcesNote(result.content, data.sources);
+    }
+
+    /* حفظ المحادثة بعد الرد */
+    saveCurrentConversation();
+  }
+  catch(error){
+    console.error(error);
+    removeTyping();
+    addMessage("تعذر الاتصال بالسيرفر", "bot", true);
+    saveCurrentConversation();
+  }
+  finally{
+    sendBtn.disabled = false;
+    input.focus();
+  }
+});
 
 /* =========================================================
    ATTACH FILE
    ========================================================= */
+attachBtn.addEventListener("click", () => {
+  fileInput.click();
+});
 
-attachBtn.addEventListener(
-  "click",
-  () => {
-
-    fileInput.click();
-
-  }
-);
-
-
-uploadZone.addEventListener(
-  "click",
-  () => {
-
-    fileInput.click();
-
-  }
-);
-
+uploadZone.addEventListener("click", () => {
+  fileInput.click();
+});
 
 /* =========================================================
    DRAG FILE
    ========================================================= */
+uploadZone.addEventListener("dragover", e => {
+  e.preventDefault();
+  uploadZone.classList.add("dragover");
+});
 
-uploadZone.addEventListener(
-  "dragover",
-  e => {
+uploadZone.addEventListener("dragleave", () => {
+  uploadZone.classList.remove("dragover");
+});
 
-    e.preventDefault();
+uploadZone.addEventListener("drop", e => {
+  e.preventDefault();
+  uploadZone.classList.remove("dragover");
 
-    uploadZone.classList.add(
-      "dragover"
-    );
-
+  if(e.dataTransfer.files.length){
+    uploadFile(e.dataTransfer.files[0]);
   }
-);
-
-
-uploadZone.addEventListener(
-  "dragleave",
-  () => {
-
-    uploadZone.classList.remove(
-      "dragover"
-    );
-
-  }
-);
-
-
-uploadZone.addEventListener(
-  "drop",
-  e => {
-
-    e.preventDefault();
-
-    uploadZone.classList.remove(
-      "dragover"
-    );
-
-
-    if(
-      e.dataTransfer.files.length
-    ){
-
-      uploadFile(
-        e.dataTransfer.files[0]
-      );
-
-    }
-
-  }
-);
-
+});
 
 /* =========================================================
    FILE SELECT
    ========================================================= */
-
-fileInput.addEventListener(
-  "change",
-  () => {
-
-    if(
-      fileInput.files.length
-    ){
-
-      uploadFile(
-        fileInput.files[0]
-      );
-
-    }
-
+fileInput.addEventListener("change", () => {
+  if(fileInput.files.length){
+    uploadFile(fileInput.files[0]);
   }
-);
-
+});
 
 /* =========================================================
    UPLOAD FILE
    ========================================================= */
-
 async function uploadFile(file){
+  const originalHTML = uploadZone.innerHTML;
 
-  const originalHTML =
-    uploadZone.innerHTML;
+  uploadZone.innerHTML = `⏳ جارٍ معالجة: ${file.name}`;
 
-
-  uploadZone.innerHTML =
-    `⏳ جارٍ معالجة: ${escapeHtml(file.name)}`;
-
-
-  const formData =
-    new FormData();
-
-
-  formData.append(
-    "file",
-    file
-  );
-
+  const formData = new FormData();
+  formData.append("file", file);
 
   try{
+    const res = await fetch("/api/upload", {
+      method:"POST",
+      body: formData
+    });
 
-    const res =
-      await fetch(
-        "/api/upload",
-        {
-
-          method:"POST",
-
-          body:formData
-
-        }
-      );
-
-
-    const data =
-      await res.json();
-
+    const data = await res.json();
 
     if(!res.ok){
-
-      alert(
-        data.error ||
-        "فشل رفع الملف"
-      );
-
-    }else{
-
-      addMessage(
-
-        `✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`,
-
-        "bot"
-
-      );
-
-
-      saveCurrentConversation();
-
+      alert(data.error || "فشل رفع الملف");
     }
-
-  }catch(error){
-
-    console.error(
-      error
-    );
-
-
-    alert(
-      "تعذر رفع الملف"
-    );
-
-  }finally{
-
-    uploadZone.innerHTML =
-      originalHTML;
-
-
-    fileInput.value =
-      "";
-
-
-    loadDocuments();
-
+    else{
+      addMessage(`✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`, "bot");
+      saveCurrentConversation();
+    }
   }
-
+  catch(error){
+    console.error(error);
+    alert("تعذر رفع الملف");
+  }
+  finally{
+    uploadZone.innerHTML = originalHTML;
+    fileInput.value = "";
+    loadDocuments();
+  }
 }
-
 
 /* =========================================================
    LOAD DOCUMENTS
    ========================================================= */
-
 async function loadDocuments(){
-
   try{
+    const res = await fetch("/api/documents");
+    const data = await res.json();
 
-    const res =
-      await fetch(
-        "/api/documents"
-      );
+    docsList.innerHTML = "";
 
-
-    const data =
-      await res.json();
-
-
-    docsList.innerHTML =
-      "";
-
-
-    if(
-      !data.documents ||
-      data.documents.length === 0
-    ){
-
-      docsList.innerHTML =
-        '<div class="empty-hint">لا توجد مستندات بعد</div>';
-
+    if(!data.documents || data.documents.length === 0){
+      docsList.innerHTML = '<div class="empty-hint">لا توجد مستندات بعد</div>';
       return;
-
     }
 
+    data.documents.forEach(doc => {
+      const div = document.createElement("div");
+      div.className = "doc-item";
 
-    data.documents.forEach(
-      doc => {
+      div.innerHTML = `
+        <span class="doc-name">📄 ${escapeHtml(doc.source)}</span>
+        <span class="doc-chunks">${doc.chunks}</span>
+      `;
 
-        const div =
-          document.createElement(
-            "div"
-          );
+      const delBtn = document.createElement("button");
+      delBtn.className = "del-btn";
+      delBtn.textContent = "✕";
+      delBtn.title = "حذف";
 
+      delBtn.onclick = async () => {
+        try{
+          await fetch(`/api/documents/${doc.doc_id}`, { method:"DELETE" });
+          loadDocuments();
+        }
+        catch(error){
+          console.error(error);
+        }
+      };
 
-        div.className =
-          "doc-item";
-
-
-        div.innerHTML = `
-
-          <span class="doc-name">
-
-            📄 ${escapeHtml(
-              doc.source
-            )}
-
-          </span>
-
-          <span class="doc-chunks">
-
-            ${doc.chunks}
-
-          </span>
-
-        `;
-
-
-        const delBtn =
-          document.createElement(
-            "button"
-          );
-
-
-        delBtn.className =
-          "del-btn";
-
-
-        delBtn.textContent =
-          "✕";
-
-
-        delBtn.title =
-          "حذف";
-
-
-        delBtn.onclick =
-          async () => {
-
-            try{
-
-              await fetch(
-
-                `/api/documents/${doc.doc_id}`,
-
-                {
-                  method:"DELETE"
-                }
-
-              );
-
-
-              loadDocuments();
-
-            }catch(error){
-
-              console.error(
-                error
-              );
-
-            }
-
-          };
-
-
-        div.appendChild(
-          delBtn
-        );
-
-
-        docsList.appendChild(
-          div
-        );
-
-      }
-    );
-
-  }catch(error){
-
-    console.error(
-      error
-    );
-
-
-    docsList.innerHTML =
-      '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
-
+      div.appendChild(delBtn);
+      docsList.appendChild(div);
+    });
   }
-
+  catch(error){
+    console.error(error);
+    docsList.innerHTML = '<div class="empty-hint" style="color:var(--danger)">تعذر تحميل المستندات</div>';
+  }
 }
-
 
 /* =========================================================
    MOBILE INITIAL STATE
    ========================================================= */
-
 function initializeSidebar(){
-
-  if(
-    window.innerWidth <= 760
-  ){
-
-    sidebar.classList.add(
-      "collapsed"
-    );
-
-
-    sidebarOverlay.classList.remove(
-      "active"
-    );
-
-  }else{
-
-    sidebar.classList.remove(
-      "collapsed"
-    );
-
-
-    sidebarOverlay.classList.remove(
-      "active"
-    );
-
+  if(window.innerWidth <= 760){
+    /* مهم جدًا: لا تظهر القائمة عند الدخول */
+    sidebar.classList.add("collapsed");
+    sidebarOverlay.classList.remove("active");
   }
-
+  else{
+    /* على الكمبيوتر تظهر القائمة */
+    sidebar.classList.remove("collapsed");
+    sidebarOverlay.classList.remove("active");
+  }
 }
-
 
 /* =========================================================
    RESIZE
    ========================================================= */
-
-window.addEventListener(
-  "resize",
-  () => {
-
-    if(
-      window.innerWidth <= 760
-    ){
-
-      if(
-        !sidebarOverlay.classList.contains(
-          "active"
-        )
-      ){
-
-        sidebar.classList.add(
-          "collapsed"
-        );
-
-      }
-
-    }else{
-
-      sidebar.classList.remove(
-        "collapsed"
-      );
-
-
-      sidebarOverlay.classList.remove(
-        "active"
-      );
-
+window.addEventListener("resize", () => {
+  /* عند الانتقال من Desktop إلى Mobile */
+  if(window.innerWidth <= 760){
+    /* إذا لم تكن القائمة مفتوحة تبقى مغلقة */
+    if(!sidebarOverlay.classList.contains("active")){
+      sidebar.classList.add("collapsed");
     }
-
   }
-);
-
+  else{
+    /* على Desktop: القائمة تظهر دائمًا */
+    sidebar.classList.remove("collapsed");
+    sidebarOverlay.classList.remove("active");
+  }
+});
 
 /* =========================================================
    INITIALIZE
    ========================================================= */
-
 initializeSidebar();
-
 renderConversationList();
-
 loadDocuments();
-
 input.focus();
-
 </script>
 
 </body>
