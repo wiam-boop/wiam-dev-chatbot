@@ -571,6 +571,97 @@ body{
 }
 
 /* =========================================================
+   ATTACHMENTS (صورة أو ملف يرسله المستخدم داخل المحادثة)
+   ========================================================= */
+.attachment-wrap{
+  margin-bottom:8px;
+}
+
+.attachment-image{
+  border-radius:var(--radius-md);
+  overflow:hidden;
+  border:1px solid var(--border);
+  max-width:320px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+
+.attachment-image img{
+  width:100%;
+  max-width:320px;
+  max-height:320px;
+  height:auto;
+  object-fit:cover;
+  display:block;
+}
+
+.attachment-card{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:12px 14px;
+  max-width:320px;
+  transition:border-color .15s;
+}
+
+.attachment-card:hover{
+  border-color:#444;
+}
+
+.attachment-icon{
+  width:40px;
+  height:40px;
+  min-width:40px;
+  border-radius:var(--radius-sm);
+  background:var(--accent-soft);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  flex-shrink:0;
+}
+
+.attachment-info{
+  min-width:0;
+  overflow:hidden;
+}
+
+.attachment-name{
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--text-primary);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.attachment-size{
+  font-size:11.5px;
+  color:var(--text-secondary);
+  margin-top:2px;
+}
+
+.attachment-status{
+  font-size:11.5px;
+  color:var(--text-secondary);
+  margin-top:6px;
+}
+
+.attachment-status:empty{
+  display:none;
+}
+
+.attachment-status.loading{
+  color:var(--accent);
+}
+
+.attachment-status.error{
+  color:var(--danger);
+}
+
+/* =========================================================
    SOURCES
    ========================================================= */
 .sources-note{
@@ -944,6 +1035,11 @@ form#chatForm:focus-within{
     height:auto;
   }
 
+  .attachment-image,
+  .attachment-card{
+    max-width:100%;
+  }
+
   /* INPUT */
   #inputArea{
     width:100%;
@@ -1234,6 +1330,61 @@ function escapeHtml(str){
 }
 
 /* =========================================================
+   ATTACHMENT HELPERS (صورة / ملف داخل المحادثة)
+   ========================================================= */
+function formatFileSize(bytes){
+  if(bytes === null || bytes === undefined || isNaN(bytes)){
+    return "";
+  }
+  if(bytes < 1024){
+    return bytes + " B";
+  }
+  if(bytes < 1024 * 1024){
+    return (bytes / 1024).toFixed(1) + " KB";
+  }
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function getFileIcon(filename){
+  const ext = String(filename).split(".").pop().toLowerCase();
+  const icons = {
+    pdf:"📕",
+    doc:"📘",
+    docx:"📘",
+    txt:"📄",
+    md:"📄",
+    png:"🖼️",
+    jpg:"🖼️",
+    jpeg:"🖼️",
+    webp:"🖼️",
+    bmp:"🖼️"
+  };
+  return icons[ext] || "📎";
+}
+
+function readFileAsDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function setAttachmentStatus(attachmentEl, text, isError=false, isLoading=false){
+  if(!attachmentEl){
+    return;
+  }
+  const status = attachmentEl.querySelector(".attachment-status");
+  if(!status){
+    return;
+  }
+  status.textContent = text || "";
+  status.classList.toggle("error", !!isError);
+  status.classList.toggle("loading", !isError && !!isLoading);
+}
+
+/* =========================================================
    MARKDOWN
    ========================================================= */
 function renderMarkdown(text){
@@ -1265,7 +1416,7 @@ function ensureStarted(){
 /* =========================================================
    ADD MESSAGE
    ========================================================= */
-function addMessage(text, sender, isError=false, imageUrl=null){
+function addMessage(text, sender, isError=false, imageUrl=null, attachment=null){
   ensureStarted();
 
   const row = document.createElement("div");
@@ -1282,11 +1433,44 @@ function addMessage(text, sender, isError=false, imageUrl=null){
   name.className = "msg-name";
   name.textContent = sender === "user" ? "أنت" : "المساعد";
 
+  body.appendChild(name);
+
+  /* المرفق: صورة أو ملف أرسله المستخدم، يظهر داخل المحادثة مباشرة وباحترافية */
+  let attachmentEl = null;
+  if(attachment){
+    attachmentEl = document.createElement("div");
+    attachmentEl.className = "attachment-wrap";
+
+    if(attachment.isImage && attachment.url){
+      attachmentEl.innerHTML = `
+        <div class="attachment-image">
+          <img src="${attachment.url}" alt="${escapeHtml(attachment.name || "صورة مرفقة")}">
+        </div>
+        <div class="attachment-status"></div>
+      `;
+    }
+    else{
+      attachmentEl.innerHTML = `
+        <div class="attachment-card">
+          <div class="attachment-icon">${getFileIcon(attachment.name || "")}</div>
+          <div class="attachment-info">
+            <div class="attachment-name">${escapeHtml(attachment.name || "ملف مرفق")}</div>
+            <div class="attachment-size">${formatFileSize(attachment.size)}</div>
+          </div>
+        </div>
+        <div class="attachment-status"></div>
+      `;
+    }
+
+    body.appendChild(attachmentEl);
+  }
+
   const content = document.createElement("div");
   content.className = "msg-content" + (isError ? " error" : "");
-  content.innerHTML = renderMarkdown(text);
+  if(text){
+    content.innerHTML = renderMarkdown(text);
+  }
 
-  body.appendChild(name);
   body.appendChild(content);
 
   /* IMAGE */
@@ -1327,7 +1511,8 @@ function addMessage(text, sender, isError=false, imageUrl=null){
       text: text,
       sender: sender,
       error: isError,
-      imageUrl: imageUrl || null
+      imageUrl: imageUrl || null,
+      attachment: attachment || null
     });
   }
 
@@ -1339,7 +1524,7 @@ function addMessage(text, sender, isError=false, imageUrl=null){
     });
   });
 
-  return { row, content };
+  return { row, content, attachmentEl };
 }
 
 /* =========================================================
@@ -1655,7 +1840,7 @@ function loadConversation(id){
   hasStarted = false;
 
   currentConversation.forEach(message => {
-    addMessage(message.text, message.sender, message.error || false, message.imageUrl || null);
+    addMessage(message.text, message.sender, message.error || false, message.imageUrl || null, message.attachment || null);
   });
 
   loadingConversation = false;
@@ -1851,7 +2036,33 @@ fileInput.addEventListener("change", () => {
 async function uploadFile(file){
   const originalHTML = uploadZone.innerHTML;
 
-  uploadZone.innerHTML = `⏳ جارٍ معالجة: ${file.name}`;
+  uploadZone.innerHTML = `⏳ جارٍ معالجة: ${escapeHtml(file.name)}`;
+
+  const isImage = file.type && file.type.startsWith("image/");
+  let previewUrl = null;
+
+  if(isImage){
+    try{
+      previewUrl = await readFileAsDataUrl(file);
+    }
+    catch(error){
+      console.error(error);
+      previewUrl = null;
+    }
+  }
+
+  const attachment = {
+    isImage: !!(isImage && previewUrl),
+    url: previewUrl,
+    name: file.name,
+    size: file.size
+  };
+
+  /* عرض الصورة أو الملف داخل وسط المحادثة مباشرة وباحترافية */
+  const sentMsg = addMessage("", "user", false, null, attachment);
+  setAttachmentStatus(sentMsg.attachmentEl, "⏳ جارٍ الإضافة إلى قاعدة المعرفة...", false, true);
+
+  saveCurrentConversation();
 
   const formData = new FormData();
   formData.append("file", file);
@@ -1865,16 +2076,20 @@ async function uploadFile(file){
     const data = await res.json();
 
     if(!res.ok){
+      setAttachmentStatus(sentMsg.attachmentEl, "⚠️ " + (data.error || "فشل رفع الملف"), true);
       alert(data.error || "فشل رفع الملف");
     }
     else{
-      addMessage(`✅ تمت إضافة "${data.filename}" لقاعدة المعرفة (${data.chunks} جزء)`, "bot");
-      saveCurrentConversation();
+      setAttachmentStatus(sentMsg.attachmentEl, `✅ أُضيف لقاعدة المعرفة (${data.chunks} جزء)`, false);
     }
+
+    saveCurrentConversation();
   }
   catch(error){
     console.error(error);
+    setAttachmentStatus(sentMsg.attachmentEl, "⚠️ تعذر رفع الملف", true);
     alert("تعذر رفع الملف");
+    saveCurrentConversation();
   }
   finally{
     uploadZone.innerHTML = originalHTML;
