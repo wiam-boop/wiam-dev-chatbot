@@ -1,7 +1,6 @@
 ﻿flask
 gunicorn
 openai
-google-generativeai
 pypdf
 python-docx
 pillow
