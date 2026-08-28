@@ -1,4 +1,4 @@
-﻿flask
+flask
 gunicorn
 openai
 pypdf
@@ -11,4 +11,4 @@ requests
 python-dotenv
 groq
 psycopg[binary]
-huggingface_hub
+sentence-transformers

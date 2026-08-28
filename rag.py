@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 import faiss
-from huggingface_hub import InferenceClient
+from sentence_transformers import SentenceTransformer
 from groq import Groq
 
 from pypdf import PdfReader
@@ -49,10 +49,20 @@ META_PATH   = os.path.join(STORAGE_DIR, "kb_meta.json")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # ─── نموذج embedding محلي (بلا API خارجي) ───
-HF_API_KEY = os.environ.get("HF_API_KEY")
-_hf_client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
-EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+EMBED_MODEL_NAME = os.environ.get("EMBED_MODEL_NAME", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 EMBED_DIM = 384
+_embed_model = None
+_embed_model_lock = threading.Lock()
+
+def _get_embed_model():
+    global _embed_model
+    if _embed_model is None:
+        with _embed_model_lock:
+            if _embed_model is None:
+                print("[RAG] Loading local embedding model...")
+                _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
+                print("[RAG] Local embedding model loaded.")
+    return _embed_model
 
 # ─── عميل Groq (مخصص فقط لفهم الصور عبر نموذج Vision) ───
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -66,16 +76,14 @@ _lock         = threading.Lock()
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    """يحصل على embeddings عبر HuggingFace Inference Providers"""
-    vectors = [
-        _hf_client.feature_extraction(text, model=EMBED_MODEL_NAME)
-        for text in texts
-    ]
-    embeddings = np.array(vectors, dtype="float32")
-
-    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-    norms = np.where(norms == 0, 1, norms)
-    return embeddings / norms
+    """ينشئ embeddings محليًا بدون HuggingFace Inference API."""
+    model = _get_embed_model()
+    embeddings = model.encode(
+        texts,
+        normalize_embeddings=True,
+        convert_to_numpy=True
+    )
+    return np.asarray(embeddings, dtype="float32")
 
 # ─── استخراج النص ───
 

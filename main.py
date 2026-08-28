@@ -5,20 +5,23 @@ import uuid
 import hmac
 import time
 import urllib.parse
+import requests
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
 from openai import OpenAI
-from dotenv import load_dotenv
 
 import rag
 import database
+import knowledge_memory
 
 
 # =========================================================
 # ENVIRONMENT
 # =========================================================
-
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -40,6 +43,9 @@ ADMIN_PASSWORD = os.environ.get(
 ).strip()
 
 database.init_db()
+
+MEMORY_THRESHOLD = float(os.environ.get("MEMORY_THRESHOLD", "0.86"))
+learned_memory = knowledge_memory.LearnedMemory(threshold=MEMORY_THRESHOLD)
 
 
 # =========================================================
@@ -100,6 +106,9 @@ client = OpenAI(
 
 
 MODEL_NAME = "gemini-3.6-flash"
+
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "").strip()
+TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 
 
 # =========================================================
@@ -1007,6 +1016,43 @@ def rate_limit_user_message(error):
 
 
 # =========================================================
+# WEB SEARCH - TAVILY
+# =========================================================
+
+def search_web_tavily(query, max_results=5):
+    if not TAVILY_API_KEY:
+        print("[WEB] TAVILY_API_KEY غير مضبوط")
+        return []
+    try:
+        response = requests.post(
+            TAVILY_SEARCH_URL,
+            json={
+                "api_key": TAVILY_API_KEY,
+                "query": query,
+                "search_depth": "advanced",
+                "include_answer": False,
+                "include_raw_content": False,
+                "max_results": max_results
+            },
+            timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+        results=[]
+        for item in data.get("results", []):
+            results.append({
+                "title": item.get("title", ""),
+                "content": item.get("content", ""),
+                "url": item.get("url", "")
+            })
+        print(f"[WEB] Tavily returned {len(results)} results")
+        return results
+    except Exception as e:
+        print(f"[WEB ERROR] {e}")
+        return []
+
+
+# =========================================================
 # CALL MODEL WITH RETRY
 # =========================================================
 
@@ -1506,7 +1552,34 @@ def chat():
         })
 
     # =====================================================
-    # 4. GET HISTORY
+    # 4. LONG-TERM MEMORY
+    # =====================================================
+    # إذا عرفنا السؤال من الذاكرة، لا نستخدم RAG/Web/Gemini.
+    memory_result = learned_memory.search(user_message)
+
+    if memory_result:
+        answer = memory_result["answer"]
+        save_chat_to_session(user_message, answer)
+        try:
+            database.save_message(chat_session_id, "user", user_message)
+            database.save_message(
+                chat_session_id,
+                "assistant",
+                answer,
+                sources=["🧠 Long-Term Memory"]
+            )
+        except Exception as e:
+            print(f"[DATABASE ERROR - MEMORY] {e}")
+        return jsonify({
+            "answer": answer,
+            "sources": ["🧠 Long-Term Memory"],
+            "memory_hit": True,
+            "memory_score": memory_result["score"],
+            "learned_source": memory_result["source"]
+        })
+
+    # =====================================================
+    # 5. GET HISTORY
     # =====================================================
 
     messages = session.get(
@@ -1553,7 +1626,36 @@ def chat():
         results = []
 
     # =====================================================
-    # 6. BUILD OUTGOING MESSAGES
+    # 6. WEB FALLBACK
+    # =====================================================
+    web_results = []
+    rag_threshold = float(os.environ.get("RAG_THRESHOLD", "0.55"))
+    strong_rag = bool(
+        results
+        and float(results[0].get("score", 0)) >= rag_threshold
+    )
+
+    if not strong_rag:
+        web_results = search_web_tavily(user_message)
+        if web_results:
+            web_context = "## نتائج البحث على الويب:\n\n"
+            for i, item in enumerate(web_results, 1):
+                web_context += (
+                    f"### نتيجة {i}\n"
+                    f"العنوان: {item['title']}\n"
+                    f"الرابط: {item['url']}\n"
+                    f"المحتوى: {item['content']}\n\n"
+                )
+            context_block = (
+                (context_block + "\n\n" + web_context)
+                if context_block else web_context
+            )
+            sources_used = [
+                item["url"] for item in web_results if item.get("url")
+            ]
+
+    # =====================================================
+    # 7. BUILD OUTGOING MESSAGES
     # =====================================================
 
     outgoing_messages = (
@@ -1639,7 +1741,25 @@ def chat():
         }), 503
 
     # =====================================================
-    # 9. SAVE CONVERSATION IN SESSION
+    # 9. LEARN WEB ANSWER
+    # =====================================================
+    learned = False
+    if web_results and answer and not image_url:
+        try:
+            learned_memory.save(
+                question=user_message,
+                answer=answer,
+                source="web",
+                source_urls=[
+                    item["url"] for item in web_results if item.get("url")
+                ]
+            )
+            learned = True
+        except Exception as e:
+            print(f"[MEMORY SAVE ERROR] {e}")
+
+    # =====================================================
+    # 10. SAVE CONVERSATION IN SESSION
     # =====================================================
 
     messages.append({
@@ -1690,7 +1810,10 @@ def chat():
 
     result = {
         "answer": answer,
-        "sources": sources_used
+        "sources": sources_used,
+        "memory_hit": False,
+        "web_searched": bool(web_results),
+        "learned": learned
     }
 
     if image_url:
@@ -1702,6 +1825,53 @@ def chat():
     return jsonify(
         result
     )
+
+
+# =========================================================
+# LONG-TERM MEMORY API
+# =========================================================
+
+@app.route("/api/memory", methods=["GET"])
+def get_memory():
+    try:
+        return jsonify({
+            "count": learned_memory.count(),
+            "items": learned_memory.list_items()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/memory/teach", methods=["POST"])
+def teach_memory():
+    data = request.get_json(silent=True) or {}
+    question = str(data.get("question", "")).strip()
+    answer = str(data.get("answer", "")).strip()
+    if not question or not answer:
+        return jsonify({"error": "أرسل question و answer"}), 400
+    try:
+        item = learned_memory.save(question, answer, source="user", source_urls=[])
+        return jsonify({
+            "status": "ok",
+            "message": "🧠 تم تعلم المعلومة وحفظها.",
+            "memory": item
+        })
+    except Exception as e:
+        print(f"[TEACH MEMORY ERROR] {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/memory/<memory_id>", methods=["DELETE"])
+def delete_memory(memory_id):
+    if not is_admin():
+        return jsonify({"error": "غير مصرح"}), 401
+    try:
+        deleted = learned_memory.delete(int(memory_id))
+        if not deleted:
+            return jsonify({"error": "المعلومة غير موجودة"}), 404
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # =========================================================
