@@ -101,7 +101,7 @@ client = OpenAI(
 )
 
 
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-3.6-flash"
 
 
 # =========================================================
@@ -120,7 +120,7 @@ groq_client = (
 
 # ملاحظة: نفس الموديل المستخدم في rag.py لتحليل الصور (qwen/qwen3.6-27b)
 # مؤكد أنه شغّال على حسابك، فاستخدمناه هنا كمان بدل تخمين اسم موديل جديد.
-GROQ_FALLBACK_MODEL = "qwen/qwen3.6-27b"
+GROQ_FALLBACK_MODEL = "llama3-70b-8192"
 
 
 # =========================================================
@@ -142,7 +142,7 @@ openrouter_client = (
 
 # ملاحظة: قايمة الموديلات المجانية (بعلامة :free) بتتغيّر بمرور
 # الوقت. تأكد من القايمة الحالية على openrouter.ai/models?max_price=0
-OPENROUTER_FALLBACK_MODEL = "deepseek/deepseek-chat-v3.1:free"
+OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 
 # =========================================================
