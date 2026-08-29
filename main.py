@@ -120,7 +120,7 @@ groq_client = (
 
 # ملاحظة: نفس الموديل المستخدم في rag.py لتحليل الصور (qwen/qwen3.6-27b)
 # مؤكد أنه شغّال على حسابك، فاستخدمناه هنا كمان بدل تخمين اسم موديل جديد.
-GROQ_FALLBACK_MODEL = "llama3-70b-8192"
+GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
 
 
 # =========================================================
@@ -142,6 +142,7 @@ openrouter_client = (
 
 # ملاحظة: قايمة الموديلات المجانية (بعلامة :free) بتتغيّر بمرور
 # الوقت. تأكد من القايمة الحالية على openrouter.ai/models?max_price=0
+GROQ_FALLBACK_MODEL_2  = "llama-3.1-8b-instant"   # احتياطي إذا فشل 70B
 OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 
