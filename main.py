@@ -1649,6 +1649,34 @@ def chat():
     )
 
     # =====================================================
+    # 4.5 IMAGE DESCRIPTION — إذا طلب وصف صورة مرفوعة
+    # =====================================================
+
+    if is_image_description_request(user_message):
+        img_path = rag.get_last_uploaded_image_path()
+        if img_path:
+            try:
+                vision_answer = rag._describe_image_with_vision(img_path)
+                if vision_answer and not vision_answer.startswith("[تعذر"):
+                    answer    = vision_answer
+                    image_url = None
+
+                    try:
+                        database.save_message(chat_session_id, "user", user_message)
+                        database.save_message(chat_session_id, "assistant", answer)
+                    except Exception:
+                        pass
+
+                    messages.append({"role": "user", "content": user_message})
+                    messages.append({"role": "assistant", "content": answer})
+                    if len(messages) > MAX_HISTORY_MESSAGES:
+                        messages = [messages[0]] + messages[-3:]
+                    session["messages"] = messages
+                    return jsonify({"answer": answer, "sources": []})
+            except Exception as e:
+                print(f"[VISION] {e}")
+
+    # =====================================================
     # 5. RAG SEARCH
     # =====================================================
 

@@ -381,6 +381,77 @@ def save_uploaded_file(file_storage, original_filename: str):
     return doc_id, file_path, ext
 
 
+
+def describe_uploaded_image(filename: str) -> str:
+    """
+    يصف صورة مرفوعة مسبقاً في قاعدة المعرفة باستخدام Vision.
+    يبحث عن الصورة في مجلد uploads ويعيد وصفها.
+    """
+    # ابحث عن الملف في مجلد uploads
+    if not filename:
+        return None
+
+    # البحث بالاسم الأصلي أو بالـ doc_id
+    target_path = None
+
+    # أولاً: بحث مباشر
+    direct = os.path.join(UPLOADS_DIR, filename)
+    if os.path.exists(direct):
+        target_path = direct
+
+    # ثانياً: بحث في المتا عبر اسم الملف
+    if not target_path:
+        for item in kb_meta_search(filename):
+            candidate = os.path.join(UPLOADS_DIR, f"{item['doc_id']}{os.path.splitext(filename)[1]}")
+            if os.path.exists(candidate):
+                target_path = candidate
+                break
+
+    # ثالثاً: أخذ آخر صورة مرفوعة
+    if not target_path:
+        image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+        candidates = [
+            os.path.join(UPLOADS_DIR, f)
+            for f in os.listdir(UPLOADS_DIR)
+            if os.path.splitext(f)[1].lower() in image_exts
+        ]
+        if candidates:
+            target_path = max(candidates, key=os.path.getmtime)
+
+    if not target_path:
+        return None
+
+    return _describe_image_with_vision(target_path)
+
+
+def kb_meta_search(source_name: str) -> list:
+    """بحث في الـ meta عن اسم مصدر معين"""
+    if not os.path.exists(META_PATH):
+        return []
+    try:
+        with open(META_PATH, 'r', encoding='utf-8') as f:
+            meta = json.load(f)
+        return [m for m in meta if source_name.lower() in m.get('source', '').lower()]
+    except Exception:
+        return []
+
+
+def get_last_uploaded_image_path() -> str:
+    """يُعيد مسار آخر صورة مرفوعة"""
+    image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+    try:
+        candidates = [
+            os.path.join(UPLOADS_DIR, f)
+            for f in os.listdir(UPLOADS_DIR)
+            if os.path.splitext(f)[1].lower() in image_exts
+        ]
+        if candidates:
+            return max(candidates, key=os.path.getmtime)
+    except Exception:
+        pass
+    return None
+
+
 def build_context_block(results):
     if not results:
         return None
