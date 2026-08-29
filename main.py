@@ -1317,6 +1317,21 @@ def save_chat_to_session(
 # GENERATE IMAGE ENDPOINT
 # =========================================================
 
+def is_image_description_request(message: str) -> bool:
+    if not message:
+        return False
+    text = message.lower().strip()
+    patterns = ["صف", "وصف", "اوصف", "describe", "شو في", "شو بالصورة",
+                "ايش في الصورة", "ما في الصورة", "اشرح الصورة",
+                "what is in", "what do you see", "what's in",
+                "tell me about", "explain the image", "analyze"]
+    image_words = ["صورة", "الصورة", "صوره", "image", "photo",
+                   "picture", "img", "هذه", "هذي", "هاي", "this"]
+    has_describe = any(p in text for p in patterns)
+    has_image    = any(w in text for w in image_words)
+    return has_describe or (has_describe and has_image)
+
+
 @app.route(
     "/api/generate-image",
     methods=["POST"]
