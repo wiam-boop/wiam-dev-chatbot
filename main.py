@@ -144,7 +144,7 @@ openrouter_client = (
 # ملاحظة: قايمة الموديلات المجانية (بعلامة :free) بتتغيّر بمرور
 # الوقت. تأكد من القايمة الحالية على openrouter.ai/models?max_price=0
 GROQ_FALLBACK_MODEL_2  = "openai/gpt-oss-20b"   # احتياطي أسرع/أخف إذا فشل النموذج الأول
-OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+OPENROUTER_FALLBACK_MODEL = "openrouter/free"
 
 
 # =========================================================
