@@ -23,6 +23,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
+app.config["SESSION_COOKIE_SIZE_LIMIT"] = 3000
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
     "غيّر-هذا-المفتاح-لاحقاً"
@@ -148,9 +149,9 @@ OPENROUTER_FALLBACK_MODEL = "deepseek/deepseek-chat-v3.1:free"
 # TOKEN / HISTORY OPTIMIZATION
 # =========================================================
 
-MAX_HISTORY_MESSAGES = 8
+MAX_HISTORY_MESSAGES = 4
 
-MAX_HISTORY_MESSAGE_CHARS = 3000
+MAX_HISTORY_MESSAGE_CHARS = 600
 
 MAX_RAG_CONTEXT_CHARS = 6000
 
@@ -1308,11 +1309,7 @@ def save_chat_to_session(
         "content": answer
     })
 
-    session["messages"] = (
-        build_optimized_history(
-            messages
-        )
-    )
+    session["messages"] = ([messages[0]] + messages[-3:]) if len(messages) > 4 else messages
 
 
 # =========================================================
@@ -1790,11 +1787,7 @@ def chat():
             f"[MODEL ERROR] {e}"
         )
 
-        session["messages"] = (
-            build_optimized_history(
-                messages
-            )
-        )
+        session["messages"] = ([messages[0]] + messages[-3:]) if len(messages) > 4 else messages
 
         if is_rate_limit_error(e):
 
@@ -1835,11 +1828,7 @@ def chat():
         "content": answer
     })
 
-    session["messages"] = (
-        build_optimized_history(
-            messages
-        )
-    )
+    session["messages"] = ([messages[0]] + messages[-3:]) if len(messages) > 4 else messages
 
     # =====================================================
     # 10. SAVE DATABASE
