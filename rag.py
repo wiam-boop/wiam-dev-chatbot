@@ -57,6 +57,7 @@ VISION_MODEL = "qwen/qwen3.6-27b"
 CHUNK_SIZE    = 700
 CHUNK_OVERLAP = 120
 TOP_K         = 4
+MIN_SEARCH_SCORE = 0.5   # الحد الأدنى للتشابه لاعتبار النتيجة "ذات صلة"
 _lock         = threading.Lock()
 
 # ─── إعدادات الـ Cache ───
@@ -377,6 +378,8 @@ class KnowledgeBase:
         results = []
         for score, idx in zip(scores[0], indices[0]):
             if idx == -1:
+                continue
+            if float(score) < MIN_SEARCH_SCORE:
                 continue
             item          = dict(self.meta[idx])
             item["score"] = float(score)
