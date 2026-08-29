@@ -254,40 +254,59 @@ def _describe_image_with_vision(file_path: str) -> str:
             b64_image = base64.b64encode(f.read()).decode("utf-8")
         ext  = os.path.splitext(file_path)[1].lower().replace(".", "")
         mime = "jpeg" if ext in ("jpg", "jpeg") else ext
-        completion = _groq_client.chat.completions.create(
-            model=VISION_MODEL,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": (
-                            "صف هذه الصورة بالتفصيل باللغة العربية: "
-                            "ما الذي تظهره؟ الأشخاص، الأشياء، النصوص إن وجدت، "
-                            "الألوان، السياق العام. اجعل الوصف غنياً بالمعلومات."
-                        ),
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/{mime};base64,{b64_image}"},
-                    },
-                ],
-            }],
-            temperature=0.3,
-            max_completion_tokens=800,
-            # qwen/qwen3.6-27b نموذج تفكير (reasoning)؛ بدون هذا الخيار
-            # يُرجع سلسلة تفكيره الداخلية بالإنجليزية ضمن content بدل الوصف النهائي فقط.
-            reasoning_format="hidden",
-        )
-        description = completion.choices[0].message.content.strip()
-        # حماية إضافية: لو تسرّب أي جزء من التفكير رغم reasoning_format=hidden،
-        # نحذف أي وسم <think>...</think> قد يبقى ضمن النص.
-        description = re.sub(
-            r"<think>.*?</think>",
-            "",
-            description,
-            flags=re.DOTALL | re.IGNORECASE,
-        ).strip()
+
+        prompt_messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "صف هذه الصورة بالتفصيل باللغة العربية: "
+                        "ما الذي تظهره؟ الأشخاص، الأشياء، النصوص إن وجدت، "
+                        "الألوان، السياق العام. اجعل الوصف غنياً بالمعلومات."
+                    ),
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/{mime};base64,{b64_image}"},
+                },
+            ],
+        }]
+
+        def _call(reasoning_effort=None):
+            kwargs = dict(
+                model=VISION_MODEL,
+                messages=prompt_messages,
+                temperature=0.3,
+                max_completion_tokens=800,
+                # qwen/qwen3.6-27b نموذج تفكير (reasoning)؛ بدون هذا الخيار
+                # قد يُرجع سلسلة تفكيره الداخلية بالإنجليزية ضمن content
+                # بدل الوصف النهائي فقط، أو يترك content فارغاً في حالات نادرة.
+                reasoning_format="hidden",
+            )
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
+            completion = _groq_client.chat.completions.create(**kwargs)
+            text = (completion.choices[0].message.content or "").strip()
+            # حماية إضافية: لو تسرّب أي جزء من التفكير رغم reasoning_format=hidden
+            text = re.sub(
+                r"<think>.*?</think>",
+                "",
+                text,
+                flags=re.DOTALL | re.IGNORECASE,
+            ).strip()
+            return text
+
+        # المحاولة الأولى: وضع non-thinking (أسرع وأقل عرضة لمشاكل التنسيق)
+        description = _call(reasoning_effort="none")
+
+        # لو رجعت فارغة لأي سبب، نعيد المحاولة بالإعداد الافتراضي للنموذج
+        if not description:
+            description = _call(reasoning_effort=None)
+
+        if not description:
+            return "[لم يتمكن نموذج الرؤية من توليد وصف لهذه الصورة]"
+
         return description
     except Exception as e:
         return f"[تعذر توليد وصف للصورة: {e}]"
