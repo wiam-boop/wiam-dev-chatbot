@@ -1956,11 +1956,18 @@ form.addEventListener("submit", async e => {
   addTyping();
 
   try{
+    // timeout 90 ثانية — Vision قد يأخذ وقتاً
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 90000);
+
     const res = await fetch("/api/chat", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ message: text })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ message: text }),
+      signal:  controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     const data = await res.json();
 
@@ -1974,13 +1981,16 @@ form.addEventListener("submit", async e => {
       addSourcesNote(result.content, data.sources);
     }
 
-    /* حفظ المحادثة بعد الرد */
     saveCurrentConversation();
   }
   catch(error){
     console.error(error);
     removeTyping();
-    addMessage("تعذر الاتصال بالسيرفر", "bot", true);
+    if(error.name === "AbortError"){
+      addMessage("⏳ الطلب استغرق وقتاً طويلاً. يرجى المحاولة مرة أخرى.", "bot", true);
+    } else {
+      addMessage("تعذر الاتصال بالسيرفر — تحقق من اتصالك بالإنترنت.", "bot", true);
+    }
     saveCurrentConversation();
   }
   finally{
