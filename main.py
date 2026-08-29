@@ -118,9 +118,10 @@ groq_client = (
     else None
 )
 
-# ملاحظة: نفس الموديل المستخدم في rag.py لتحليل الصور (qwen/qwen3.6-27b)
-# مؤكد أنه شغّال على حسابك، فاستخدمناه هنا كمان بدل تخمين اسم موديل جديد.
-GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
+# ملاحظة: Groq أوقف (deprecated) نموذجي llama-3.3-70b-versatile
+# و llama-3.1-8b-instant بتاريخ 17 يونيو 2026، وأوصى بالانتقال إلى
+# نماذج عائلة gpt-oss (أو qwen/qwen3.6-27b) بدلاً منها.
+GROQ_FALLBACK_MODEL = "openai/gpt-oss-120b"
 
 
 # =========================================================
@@ -142,7 +143,7 @@ openrouter_client = (
 
 # ملاحظة: قايمة الموديلات المجانية (بعلامة :free) بتتغيّر بمرور
 # الوقت. تأكد من القايمة الحالية على openrouter.ai/models?max_price=0
-GROQ_FALLBACK_MODEL_2  = "llama-3.1-8b-instant"   # احتياطي إذا فشل 70B
+GROQ_FALLBACK_MODEL_2  = "openai/gpt-oss-20b"   # احتياطي أسرع/أخف إذا فشل النموذج الأول
 OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 
@@ -1302,12 +1303,12 @@ def save_chat_to_session(
 
     messages.append({
         "role": "user",
-        "content": user_message
+        "content": trim_message_content(user_message)
     })
 
     messages.append({
         "role": "assistant",
-        "content": answer
+        "content": trim_message_content(answer)
     })
 
     session["messages"] = ([messages[0]] + messages[-3:]) if len(messages) > 4 else messages
@@ -1683,8 +1684,8 @@ def chat():
                     except Exception:
                         pass
 
-                    messages.append({"role": "user", "content": user_message})
-                    messages.append({"role": "assistant", "content": answer})
+                    messages.append({"role": "user", "content": trim_message_content(user_message)})
+                    messages.append({"role": "assistant", "content": trim_message_content(answer)})
                     if len(messages) > MAX_HISTORY_MESSAGES:
                         messages = [messages[0]] + messages[-3:]
                     session["messages"] = messages
@@ -1800,10 +1801,10 @@ def chat():
                 pass
 
 
-            messages.append({"role": "user", "content": user_message})
+            messages.append({"role": "user", "content": trim_message_content(user_message)})
 
 
-            messages.append({"role": "assistant", "content": _cached})
+            messages.append({"role": "assistant", "content": trim_message_content(_cached)})
 
 
             if len(messages) > MAX_HISTORY_MESSAGES:
@@ -1864,12 +1865,12 @@ def chat():
 
     messages.append({
         "role": "user",
-        "content": user_message
+        "content": trim_message_content(user_message)
     })
 
     messages.append({
         "role": "assistant",
-        "content": answer
+        "content": trim_message_content(answer)
     })
 
     session["messages"] = ([messages[0]] + messages[-3:]) if len(messages) > 4 else messages

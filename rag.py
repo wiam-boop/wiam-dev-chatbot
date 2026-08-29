@@ -5,6 +5,7 @@
 import base64
 import os
 import json
+import re
 import uuid
 import threading
 
@@ -274,8 +275,20 @@ def _describe_image_with_vision(file_path: str) -> str:
             }],
             temperature=0.3,
             max_completion_tokens=800,
+            # qwen/qwen3.6-27b نموذج تفكير (reasoning)؛ بدون هذا الخيار
+            # يُرجع سلسلة تفكيره الداخلية بالإنجليزية ضمن content بدل الوصف النهائي فقط.
+            reasoning_format="hidden",
         )
-        return completion.choices[0].message.content.strip()
+        description = completion.choices[0].message.content.strip()
+        # حماية إضافية: لو تسرّب أي جزء من التفكير رغم reasoning_format=hidden،
+        # نحذف أي وسم <think>...</think> قد يبقى ضمن النص.
+        description = re.sub(
+            r"<think>.*?</think>",
+            "",
+            description,
+            flags=re.DOTALL | re.IGNORECASE,
+        ).strip()
+        return description
     except Exception as e:
         return f"[تعذر توليد وصف للصورة: {e}]"
 
