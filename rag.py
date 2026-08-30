@@ -66,10 +66,19 @@ CACHE_MAX_SIZE             = 500    # أقصى عدد إجابات محفوظة
 
 
 def _get_embeddings(texts: list) -> np.ndarray:
-    vectors = [
-        _hf_client.feature_extraction(text, model=EMBED_MODEL_NAME)
-        for text in texts
-    ]
+    # كل نص كان يُرسل بطلب HTTP منفصل وبالتسلسل (تباطؤ ملحوظ
+    # خصوصاً عند رفع ملف فيه عدة مقاطع). الآن نرسلها بالتوازي.
+    if len(texts) == 1:
+        vectors = [
+            _hf_client.feature_extraction(texts[0], model=EMBED_MODEL_NAME)
+        ]
+    else:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(8, len(texts))) as pool:
+            vectors = list(pool.map(
+                lambda t: _hf_client.feature_extraction(t, model=EMBED_MODEL_NAME),
+                texts
+            ))
     embeddings = np.array(vectors, dtype="float32")
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1, norms)
@@ -337,8 +346,10 @@ def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 
 class KnowledgeBase:
     def __init__(self):
-        self.index = None
-        self.meta  = []
+        self.index        = None
+        self.meta         = []
+        self.last_doc_id  = None
+        self.last_doc_name = None
         self._load()
 
     def _load(self):
@@ -346,6 +357,9 @@ class KnowledgeBase:
             self.index = faiss.read_index(INDEX_PATH)
             with open(META_PATH, "r", encoding="utf-8") as f:
                 self.meta = json.load(f)
+            if self.meta:
+                self.last_doc_id   = self.meta[-1]["doc_id"]
+                self.last_doc_name = self.meta[-1]["source"]
         else:
             self.index = faiss.IndexFlatIP(EMBED_DIM)
             self.meta  = []
@@ -359,6 +373,16 @@ class KnowledgeBase:
         chunks = chunk_text(text)
         if not chunks:
             return 0
+
+        # امنع تكرار نفس الملف: احذف أي نسخة قديمة بنفس الاسم قبل
+        # الإضافة (كانت كل عملية رفع لنفس الملف تضيف نسخة مكررة).
+        existing_ids = {
+            m["doc_id"] for m in self.meta
+            if m["source"] == source_name
+        }
+        for old_id in existing_ids:
+            self.delete_document(old_id)
+
         embeddings = _get_embeddings(chunks)
         with _lock:
             self.index.add(embeddings)
@@ -368,7 +392,29 @@ class KnowledgeBase:
                     "chunk_no": i, "text": chunk,
                 })
             self._save()
+            self.last_doc_id   = doc_id
+            self.last_doc_name = source_name
+
+        # أي مستند جديد يغيّر ما هو "صحيح" من الأجوبة القديمة —
+        # امسحي الكاش الدلالي حتى لا يرجّع أجوبة قديمة (مثل
+        # "أرسل الملف") صارت خاطئة بعد إضافة هذا المستند.
+        try:
+            semantic_cache._reset()
+            semantic_cache._save()
+        except Exception as e:
+            print(f"[CACHE] تعذر تصفير الكاش بعد رفع مستند: {e}")
+
         return len(chunks)
+
+    def get_last_document_chunks(self):
+        """يعيد كل مقاطع آخر ملف تم رفعه (للاستخدام كخطة بديلة
+        عندما لا يجد البحث الدلالي تطابقاً كافياً)."""
+        if not self.last_doc_id:
+            return []
+        return [
+            m["text"] for m in self.meta
+            if m["doc_id"] == self.last_doc_id
+        ]
 
     def search(self, query: str, top_k=TOP_K):
         if self.index.ntotal == 0:
@@ -497,3 +543,41 @@ def build_context_block(results):
     for r in results:
         lines.append(f"[من: {r['source']}]\n{r['text']}\n")
     return "\n".join(lines)
+
+
+# =========================================================
+# خطة بديلة: عندما لا يجد البحث الدلالي تطابقاً كافياً لصياغة
+# عامة مثل "لخص لي الملف" أو "لقد أرسلت لك الملف"، نستخدم
+# مباشرة آخر مستند تم رفعه بدل ترك السؤال بلا سياق.
+# =========================================================
+
+_DOC_REFERENCE_WORDS = [
+    "الملف", "ملفي", "الملفات", "المستند", "المستندات",
+    "القصة", "الصورة", "الصور",
+    "ارسلت", "أرسلت", "ارسلته", "أرسلته", "رفعت", "رفعته",
+    "هاهو", "هاهي", "هذا الملف", "هذا المستند",
+    "لخص", "تلخيص", "لخصي", "لخصلي", "لخصله",
+    "file", "document", "pdf", "summarize", "summary",
+]
+
+
+def mentions_uploaded_document(text: str) -> bool:
+    """كشف بسيط بالكلمات المفتاحية لمعرفة إذا كان المستخدم
+    يقصد ملفاً/مستنداً رفعه سابقاً."""
+    if not text:
+        return False
+    normalized = text.strip().lower()
+    return any(word.lower() in normalized for word in _DOC_REFERENCE_WORDS)
+
+
+def build_fallback_context(kb, max_chars: int = 6000):
+    """يبني كتلة سياق من آخر مستند مرفوع عندما يفشل البحث
+    الدلالي في إيجاد مقاطع ذات صلة كافية."""
+    chunks = kb.get_last_document_chunks()
+    if not chunks:
+        return None
+    text = "\n".join(chunks)[:max_chars]
+    return (
+        f"## محتوى آخر ملف رفعه المستخدم ({kb.last_doc_name}):\n\n"
+        f"{text}"
+    )

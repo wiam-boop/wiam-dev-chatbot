@@ -1699,6 +1699,8 @@ def chat():
 
     sources_used = []
 
+    used_fallback_context = False
+
     try:
 
         results = kb.search(
@@ -1710,6 +1712,20 @@ def chat():
                 results
             )
         )
+
+        # خطة بديلة: البحث الدلالي أحياناً لا يجد تطابقاً كافياً
+        # لصياغات عامة مثل "لخص لي الملف" أو "لقد أرسلت لك الملف"
+        # (لا تتشابه لفظياً مع محتوى المستند نفسه). في هذه الحالة،
+        # إذا كان المستخدم يقصد على الأغلب ملفاً مرفوعاً وعندنا
+        # مستند في القاعدة، نستخدم آخر مستند مرفوع مباشرة بدل ما
+        # نترك السؤال بلا سياق ونخلي البوت يطلب الملف من جديد.
+        if (
+            not context_block
+            and kb.list_documents()
+            and rag.mentions_uploaded_document(user_message)
+        ):
+            context_block = rag.build_fallback_context(kb)
+            used_fallback_context = bool(context_block)
 
         context_block = (
             limit_rag_context(
@@ -1725,6 +1741,7 @@ def chat():
 
         context_block = None
         results = []
+        used_fallback_context = False
 
     # =====================================================
     # 6. BUILD OUTGOING MESSAGES
@@ -1760,6 +1777,11 @@ def chat():
             if isinstance(r, dict)
             and r.get("source")
         })
+
+        if used_fallback_context and kb.last_doc_name:
+            sources_used = sorted(
+                set(sources_used) | {kb.last_doc_name}
+            )
 
     # =====================================================
     # 7. CURRENT USER MESSAGE
