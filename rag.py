@@ -237,6 +237,17 @@ def _extract_docx(file_path: str) -> str:
     return "\n".join(parts)
 
 
+def _is_ocr_text_usable(text: str, min_letter_ratio: float = 0.5) -> bool:
+    """
+    يتحقق أن نص الـ OCR يحتوي فعلاً على حروف مفهومة (عربي/إنجليزي)
+    وليس رموزاً مشوهة (نتيجة OCR سيئة على صورة معقدة أو نص عربي مختلط).
+    """
+    if not text:
+        return False
+    letters = sum(1 for ch in text if ch.isalpha())
+    return (letters / len(text)) >= min_letter_ratio
+
+
 def _extract_image(file_path: str) -> str:
     image = Image.open(file_path)
     try:
@@ -248,7 +259,7 @@ def _extract_image(file_path: str) -> str:
             ocr_text = ""
 
     ocr_text = ocr_text.strip()
-    if len(ocr_text) > 20:
+    if len(ocr_text) > 20 and _is_ocr_text_usable(ocr_text):
         return ocr_text
 
     vision_description = _describe_image_with_vision(file_path)
