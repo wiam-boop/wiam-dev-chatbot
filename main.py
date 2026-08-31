@@ -1333,6 +1333,32 @@ def is_image_description_request(message: str) -> bool:
     return has_describe or (has_describe and has_image)
 
 
+# =========================================================
+# TEXT EXTRACTION REQUEST DETECTION
+# =========================================================
+# مخصصة لطلبات "استخرج/اكتب/اقرأ لي الكتابة الموجودة في الصورة" —
+# منفصلة عن is_image_description_request لأن المستخدم هنا لا يريد
+# وصفاً للصورة، بل نسخ النص الموجود بها حرفياً.
+
+def is_text_extraction_request(message: str) -> bool:
+    if not message:
+        return False
+    text = message.lower().strip()
+    patterns = [
+        "اكتب لي الكتابة", "اكتب الكتابة", "الكتابة الموجودة",
+        "الكتابة اللي في", "الكتابة التي في",
+        "استخرج النص", "استخرج الكتابة", "استخراج النص",
+        "اقرأ لي", "اقرأ الكتابة", "اقرألي",
+        "ماذا مكتوب", "شو مكتوب", "ايش مكتوب", "وش مكتوب",
+        "انسخ النص", "انسخ الكتابة",
+        "النص الموجود", "النص في الصورة", "نص الصورة", "كتابة الصورة",
+        "extract text", "extract the text", "read the text",
+        "what does it say", "what's written", "whats written",
+        "transcribe", "ocr"
+    ]
+    return any(p in text for p in patterns)
+
+
 @app.route(
     "/api/generate-image",
     methods=["POST"]
@@ -1664,6 +1690,34 @@ def chat():
             }
         ]
     )
+
+    # =====================================================
+    # 4.4 TEXT EXTRACTION — إذا طلب استخراج/قراءة الكتابة من صورة
+    # =====================================================
+
+    if is_text_extraction_request(user_message):
+        img_path = rag.get_last_uploaded_image_path()
+        if img_path:
+            try:
+                extracted_text = rag._extract_text_with_vision(img_path)
+                if extracted_text and not extracted_text.startswith("[تعذر"):
+                    answer    = extracted_text
+                    image_url = None
+
+                    try:
+                        database.save_message(chat_session_id, "user", user_message)
+                        database.save_message(chat_session_id, "assistant", answer)
+                    except Exception:
+                        pass
+
+                    messages.append({"role": "user", "content": trim_message_content(user_message)})
+                    messages.append({"role": "assistant", "content": trim_message_content(answer)})
+                    if len(messages) > MAX_HISTORY_MESSAGES:
+                        messages = [messages[0]] + messages[-3:]
+                    session["messages"] = messages
+                    return jsonify({"answer": answer, "sources": []})
+            except Exception as e:
+                print(f"[TEXT EXTRACTION] {e}")
 
     # =====================================================
     # 4.5 IMAGE DESCRIPTION — إذا طلب وصف صورة مرفوعة

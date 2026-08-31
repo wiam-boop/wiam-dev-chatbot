@@ -262,8 +262,13 @@ def _extract_image(file_path: str) -> str:
     if len(ocr_text) > 20 and _is_ocr_text_usable(ocr_text):
         return ocr_text
 
+    # Tesseract فشل أو أعطى رموزاً مشوّهة (شائع مع لقطات الشاشة أو
+    # الخطوط العربية المعقدة). جرّب استخراج النص عبر نموذج الرؤية
+    # (أدق بكثير من Tesseract في هذه الحالات)، ثم أضف وصفاً عاماً
+    # للصورة كسياق إضافي يُخزَّن في قاعدة المعرفة.
+    vision_text = _extract_text_with_vision(file_path)
     vision_description = _describe_image_with_vision(file_path)
-    combined = "\n".join(filter(None, [ocr_text, vision_description]))
+    combined = "\n".join(filter(None, [vision_text, vision_description]))
     return combined.strip()
 
 
@@ -334,6 +339,81 @@ def _describe_image_with_vision(file_path: str) -> str:
         return description
     except Exception as e:
         return f"[تعذر توليد وصف للصورة: {e}]"
+
+
+def _extract_text_with_vision(file_path: str) -> str:
+    """
+    يستخدم نموذج الرؤية (Groq Vision) لنسخ النص الموجود داخل صورة
+    حرفياً — بدون وصف أو تلخيص أو تعليق. يُستخدم كخطة بديلة أدق من
+    Tesseract عندما يفشل OCR التقليدي (خصوصاً مع لقطات الشاشة أو
+    الخطوط/الألوان المعقدة)، وأيضاً عندما يطلب المستخدم مباشرة
+    استخراج/قراءة الكتابة الموجودة في صورة مرفوعة.
+    """
+    if not GROQ_API_KEY:
+        return "[لم يتم ضبط GROQ_API_KEY، تعذر استخراج النص من الصورة]"
+    try:
+        with open(file_path, "rb") as f:
+            b64_image = base64.b64encode(f.read()).decode("utf-8")
+        ext  = os.path.splitext(file_path)[1].lower().replace(".", "")
+        mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+
+        prompt_messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "انسخ فقط النص الموجود داخل هذه الصورة حرفياً كما هو "
+                        "مكتوب تماماً، بنفس اللغة التي كُتب بها (عربي أو "
+                        "إنجليزي أو غيرهما)، سطراً بسطر إن أمكن. "
+                        "لا تصف الصورة، ولا تلخّص محتواها، ولا تضف أي مقدمة "
+                        "أو تعليق أو ترجمة — فقط النص كما هو حرفياً. "
+                        "إذا لم يوجد أي نص مكتوب في الصورة، أجب بالضبط "
+                        "بالكلمة: لا_يوجد_نص"
+                    ),
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/{mime};base64,{b64_image}"},
+                },
+            ],
+        }]
+
+        def _call(reasoning_effort=None):
+            kwargs = dict(
+                model=VISION_MODEL,
+                messages=prompt_messages,
+                temperature=0.0,
+                max_completion_tokens=1600,
+                # qwen/qwen3.6-27b نموذج تفكير (reasoning)؛ بدون هذا الخيار
+                # قد يُرجع سلسلة تفكيره الداخلية بدل النص المستخرج فقط.
+                reasoning_format="hidden",
+            )
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
+            completion = _groq_client.chat.completions.create(**kwargs)
+            text = (completion.choices[0].message.content or "").strip()
+            text = re.sub(
+                r"<think>.*?</think>",
+                "",
+                text,
+                flags=re.DOTALL | re.IGNORECASE,
+            ).strip()
+            return text
+
+        # المحاولة الأولى: وضع non-thinking (أسرع وأقل عرضة لمشاكل التنسيق)
+        extracted = _call(reasoning_effort="none")
+
+        # لو رجعت فارغة لأي سبب، نعيد المحاولة بالإعداد الافتراضي للنموذج
+        if not extracted:
+            extracted = _call(reasoning_effort=None)
+
+        if not extracted or extracted.strip().strip(".") == "لا_يوجد_نص":
+            return ""
+
+        return extracted
+    except Exception as e:
+        return f"[تعذر استخراج النص من الصورة: {e}]"
 
 
 # =========================================================
