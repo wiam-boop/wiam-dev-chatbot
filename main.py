@@ -7,7 +7,6 @@ import time
 import urllib.parse
 
 from flask import Flask, request, jsonify, session, render_template, send_from_directory
-from flask_session import Session
 from openai import OpenAI
 from groq import Groq
 from dotenv import load_dotenv
@@ -29,20 +28,6 @@ app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
     "غيّر-هذا-المفتاح-لاحقاً"
 )
-
-# تخزين الجلسة على السيرفر (ملفات) بدل الكوكي في المتصفح مباشرة:
-# SYSTEM_PROMPT وحده أطول من حد الكوكي (4093 بايت)، فكانت الجلسة
-# تُفقد بصمت وقت وجود رسائل تاريخية. Session(app) يخزن البيانات
-# على القرص ويترك في الكوكي فقط معرّف الجلسة (قصير جداً).
-_session_dir = os.path.join(
-    os.environ.get("STORAGE_PATH", "").strip() or ".",
-    "flask_session"
-)
-os.makedirs(_session_dir, exist_ok=True)
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_FILE_DIR"] = _session_dir
-app.config["SESSION_PERMANENT"] = False
-Session(app)
 
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
@@ -1345,10 +1330,7 @@ def is_image_description_request(message: str) -> bool:
                    "picture", "img", "هذه", "هذي", "هاي", "this"]
     has_describe = any(p in text for p in patterns)
     has_image    = any(w in text for w in image_words)
-    # ملاحظة: الصيغة القديمة "has_describe or (has_describe and has_image)"
-    # تختصر رياضياً إلى has_describe فقط، فكانت أي إشارة للصورة بدون فعل
-    # وصف محدد (مثل "ركز" أو "شو رأيك بهاي") تُتجاهل تماماً.
-    return has_describe or has_image
+    return has_describe or (has_describe and has_image)
 
 
 @app.route(
