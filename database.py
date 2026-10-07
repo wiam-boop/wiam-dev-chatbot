@@ -3,10 +3,13 @@ import json
 import sqlite3
 from contextlib import contextmanager
 
+# =========================================================
+# DATABASE CONFIG
+# =========================================================
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
-# Railway/PostgreSQL قد يستخدم أحيانًا postgres://
+# دعم postgres:// القديم
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace(
         "postgres://",
@@ -16,17 +19,26 @@ if DATABASE_URL.startswith("postgres://"):
 
 USE_POSTGRES = bool(DATABASE_URL)
 
-# مسار ملف SQLite (يُستعمل فقط إذا لم يُضبط DATABASE_URL أي Postgres).
-# نفس منطق rag.py: إذا كان STORAGE_PATH مضبوطاً (Volume دائم على Railway)
-# نحفظ ملف قاعدة البيانات بداخله بدل مسار نسبي غير دائم.
+
+# =========================================================
+# SQLITE CONFIG
+# =========================================================
+
 _env_storage_path = os.environ.get("STORAGE_PATH", "").strip()
 
 if _env_storage_path:
     os.makedirs(_env_storage_path, exist_ok=True)
-    SQLITE_PATH = os.path.join(_env_storage_path, "chat_logs.db")
+    SQLITE_PATH = os.path.join(
+        _env_storage_path,
+        "chat_logs.db"
+    )
 else:
     SQLITE_PATH = "chat_logs.db"
 
+
+# =========================================================
+# SQLITE CONNECTION
+# =========================================================
 
 def _get_sqlite_connection():
     conn = sqlite3.connect(
@@ -40,17 +52,31 @@ def _get_sqlite_connection():
     return conn
 
 
+# =========================================================
+# POSTGRES CONNECTION
+# =========================================================
+
 def _get_postgres_connection():
     try:
         import psycopg
+        from psycopg.rows import dict_row
+
     except ImportError as exc:
         raise RuntimeError(
             "مكتبة psycopg غير مثبتة. "
-            "أضف psycopg[binary] إلى requirements.txt"
+            "تأكدي من وجود psycopg[binary] في requirements.txt"
         ) from exc
 
-    return psycopg.connect(DATABASE_URL)
+    # dict_row مهم جدًا لأن الكود يستخدم dict(row)
+    return psycopg.connect(
+        DATABASE_URL,
+        row_factory=dict_row
+    )
 
+
+# =========================================================
+# GENERIC CONNECTION
+# =========================================================
 
 @contextmanager
 def get_connection():
@@ -74,7 +100,7 @@ def get_connection():
 
 
 # =========================================================
-# CREATE DATABASE
+# DATABASE INITIALIZATION
 # =========================================================
 
 def init_db():
@@ -83,8 +109,13 @@ def init_db():
 
         cur = conn.cursor()
 
+        # -------------------------------------------------
+        # POSTGRESQL
+        # -------------------------------------------------
+
         if USE_POSTGRES:
 
+            # Chat messages
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     id BIGSERIAL PRIMARY KEY,
@@ -106,6 +137,29 @@ def init_db():
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_created
                 ON chat_messages(created_at)
             """)
+
+            # Learned knowledge / RAG memory
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS learned_knowledge (
+                    id BIGSERIAL PRIMARY KEY,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'user',
+                    source_urls TEXT,
+                    embedding DOUBLE PRECISION[] NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_learned_knowledge_created
+                ON learned_knowledge(created_at)
+            """)
+
+        # -------------------------------------------------
+        # SQLITE
+        # -------------------------------------------------
 
         else:
 
@@ -129,6 +183,24 @@ def init_db():
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_created
                 ON chat_messages(created_at)
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS learned_knowledge (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'user',
+                    source_urls TEXT,
+                    embedding TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_learned_knowledge_created
+                ON learned_knowledge(created_at)
             """)
 
 
@@ -158,8 +230,7 @@ def save_message(
 
         if USE_POSTGRES:
 
-            cur.execute(
-                """
+            cur.execute("""
                 INSERT INTO chat_messages
                 (
                     session_id,
@@ -169,20 +240,17 @@ def save_message(
                     sources
                 )
                 VALUES (%s, %s, %s, %s, %s)
-                """,
-                (
-                    session_id,
-                    role,
-                    content,
-                    image_url,
-                    sources_json
-                )
-            )
+            """, (
+                session_id,
+                role,
+                content,
+                image_url,
+                sources_json
+            ))
 
         else:
 
-            cur.execute(
-                """
+            cur.execute("""
                 INSERT INTO chat_messages
                 (
                     session_id,
@@ -192,19 +260,255 @@ def save_message(
                     sources
                 )
                 VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    session_id,
-                    role,
-                    content,
-                    image_url,
-                    sources_json
-                )
-            )
+            """, (
+                session_id,
+                role,
+                content,
+                image_url,
+                sources_json
+            ))
 
 
 # =========================================================
-# GET ALL CONVERSATIONS
+# LEARNED KNOWLEDGE
+# =========================================================
+
+def save_learned_knowledge(
+    question,
+    answer,
+    embedding,
+    source="user",
+    source_urls=None
+):
+
+    question = str(question or "").strip()
+    answer = str(answer or "").strip()
+
+    if not question or not answer:
+        raise ValueError("question و answer مطلوبان")
+
+    source_urls_json = json.dumps(
+        source_urls or [],
+        ensure_ascii=False
+    )
+
+    embedding = [
+        float(x)
+        for x in embedding
+    ]
+
+    with get_connection() as conn:
+
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+
+            cur.execute("""
+                INSERT INTO learned_knowledge
+                (
+                    question,
+                    answer,
+                    source,
+                    source_urls,
+                    embedding
+                )
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                question,
+                answer,
+                source,
+                source_urls_json,
+                embedding
+            ))
+
+            row = cur.fetchone()
+
+            return row["id"] if row else None
+
+        else:
+
+            cur.execute("""
+                INSERT INTO learned_knowledge
+                (
+                    question,
+                    answer,
+                    source,
+                    source_urls,
+                    embedding
+                )
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                question,
+                answer,
+                source,
+                source_urls_json,
+                json.dumps(embedding)
+            ))
+
+            return cur.lastrowid
+
+
+def get_all_learned_knowledge():
+
+    with get_connection() as conn:
+
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                id,
+                question,
+                answer,
+                source,
+                source_urls,
+                embedding,
+                created_at,
+                updated_at
+            FROM learned_knowledge
+            ORDER BY created_at ASC, id ASC
+        """)
+
+        result = []
+
+        for row in cur.fetchall():
+
+            item = dict(row)
+
+            emb = item.get("embedding")
+
+            if isinstance(emb, str):
+                try:
+                    emb = json.loads(emb)
+                except Exception:
+                    emb = []
+
+            item["embedding"] = emb or []
+
+            try:
+                item["source_urls"] = json.loads(
+                    item.get("source_urls") or "[]"
+                )
+            except Exception:
+                item["source_urls"] = []
+
+            result.append(item)
+
+        return result
+
+
+def update_learned_knowledge(
+    memory_id,
+    question,
+    answer,
+    embedding,
+    source="user",
+    source_urls=None
+):
+
+    source_urls_json = json.dumps(
+        source_urls or [],
+        ensure_ascii=False
+    )
+
+    embedding = [
+        float(x)
+        for x in embedding
+    ]
+
+    with get_connection() as conn:
+
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+
+            cur.execute("""
+                UPDATE learned_knowledge
+                SET
+                    question=%s,
+                    answer=%s,
+                    source=%s,
+                    source_urls=%s,
+                    embedding=%s,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=%s
+            """, (
+                question,
+                answer,
+                source,
+                source_urls_json,
+                embedding,
+                memory_id
+            ))
+
+        else:
+
+            cur.execute("""
+                UPDATE learned_knowledge
+                SET
+                    question=?,
+                    answer=?,
+                    source=?,
+                    source_urls=?,
+                    embedding=?,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+            """, (
+                question,
+                answer,
+                source,
+                source_urls_json,
+                json.dumps(embedding),
+                memory_id
+            ))
+
+        return cur.rowcount > 0
+
+
+def delete_learned_knowledge(memory_id):
+
+    with get_connection() as conn:
+
+        cur = conn.cursor()
+
+        if USE_POSTGRES:
+
+            cur.execute(
+                """
+                DELETE FROM learned_knowledge
+                WHERE id=%s
+                """,
+                (memory_id,)
+            )
+
+        else:
+
+            cur.execute(
+                """
+                DELETE FROM learned_knowledge
+                WHERE id=?
+                """,
+                (memory_id,)
+            )
+
+        return cur.rowcount > 0
+
+
+def count_learned_knowledge():
+
+    with get_connection() as conn:
+
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT COUNT(*) FROM learned_knowledge"
+        )
+
+        return int(cur.fetchone()[0])
+
+
+# =========================================================
+# CONVERSATIONS
 # =========================================================
 
 def get_conversations(limit=100):
@@ -215,63 +519,63 @@ def get_conversations(limit=100):
 
         if USE_POSTGRES:
 
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT
                     session_id,
                     COUNT(*) AS message_count,
                     MIN(created_at) AS first_message,
                     MAX(created_at) AS last_message,
+
                     (
                         SELECT content
                         FROM chat_messages m2
                         WHERE m2.session_id = m1.session_id
-                          AND m2.role = 'user'
+                        AND m2.role = 'user'
                         ORDER BY m2.created_at ASC, m2.id ASC
                         LIMIT 1
                     ) AS first_user_message
+
                 FROM chat_messages m1
+
                 GROUP BY session_id
+
                 ORDER BY MAX(created_at) DESC
+
                 LIMIT %s
-                """,
-                (limit,)
-            )
+            """, (limit,))
 
         else:
 
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT
                     session_id,
                     COUNT(*) AS message_count,
                     MIN(created_at) AS first_message,
                     MAX(created_at) AS last_message,
+
                     (
                         SELECT content
                         FROM chat_messages m2
                         WHERE m2.session_id = m1.session_id
-                          AND m2.role = 'user'
+                        AND m2.role = 'user'
                         ORDER BY m2.created_at ASC, m2.id ASC
                         LIMIT 1
                     ) AS first_user_message
+
                 FROM chat_messages m1
+
                 GROUP BY session_id
+
                 ORDER BY MAX(created_at) DESC
+
                 LIMIT ?
-                """,
-                (limit,)
-            )
+            """, (limit,))
 
         return [
             dict(row)
             for row in cur.fetchall()
         ]
 
-
-# =========================================================
-# GET CONVERSATION MESSAGES
-# =========================================================
 
 def get_messages(
     session_id,
@@ -284,8 +588,7 @@ def get_messages(
 
         if USE_POSTGRES:
 
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT
                     id,
                     session_id,
@@ -294,21 +597,22 @@ def get_messages(
                     image_url,
                     sources,
                     created_at
+
                 FROM chat_messages
-                WHERE session_id = %s
+
+                WHERE session_id=%s
+
                 ORDER BY created_at ASC, id ASC
+
                 LIMIT %s
-                """,
-                (
-                    session_id,
-                    limit
-                )
-            )
+            """, (
+                session_id,
+                limit
+            ))
 
         else:
 
-            cur.execute(
-                """
+            cur.execute("""
                 SELECT
                     id,
                     session_id,
@@ -317,16 +621,18 @@ def get_messages(
                     image_url,
                     sources,
                     created_at
+
                 FROM chat_messages
-                WHERE session_id = ?
+
+                WHERE session_id=?
+
                 ORDER BY created_at ASC, id ASC
+
                 LIMIT ?
-                """,
-                (
-                    session_id,
-                    limit
-                )
-            )
+            """, (
+                session_id,
+                limit
+            ))
 
         rows = []
 
@@ -335,23 +641,16 @@ def get_messages(
             item = dict(row)
 
             try:
-
                 item["sources"] = json.loads(
                     item.get("sources") or "[]"
                 )
-
             except Exception:
-
                 item["sources"] = []
 
             rows.append(item)
 
         return rows
 
-
-# =========================================================
-# DELETE CONVERSATION
-# =========================================================
 
 def delete_conversation(session_id):
 
@@ -364,26 +663,22 @@ def delete_conversation(session_id):
             cur.execute(
                 """
                 DELETE FROM chat_messages
-                WHERE session_id = %s
+                WHERE session_id=%s
                 """,
                 (session_id,)
             )
-
-            deleted = cur.rowcount > 0
 
         else:
 
             cur.execute(
                 """
                 DELETE FROM chat_messages
-                WHERE session_id = ?
+                WHERE session_id=?
                 """,
                 (session_id,)
             )
 
-            deleted = cur.rowcount > 0
-
-        return deleted
+        return cur.rowcount > 0
 
 
 # =========================================================
@@ -396,17 +691,15 @@ def get_stats():
 
         cur = conn.cursor()
 
-        cur.execute("""
-            SELECT COUNT(*)
-            FROM chat_messages
-        """)
+        cur.execute(
+            "SELECT COUNT(*) FROM chat_messages"
+        )
 
         total_messages = cur.fetchone()[0]
 
-        cur.execute("""
-            SELECT COUNT(DISTINCT session_id)
-            FROM chat_messages
-        """)
+        cur.execute(
+            "SELECT COUNT(DISTINCT session_id) FROM chat_messages"
+        )
 
         total_conversations = cur.fetchone()[0]
 
@@ -414,13 +707,53 @@ def get_stats():
             SELECT COUNT(*)
             FROM chat_messages
             WHERE image_url IS NOT NULL
-              AND image_url != ''
+            AND image_url != ''
         """)
 
         total_images = cur.fetchone()[0]
 
+        cur.execute(
+            "SELECT COUNT(*) FROM learned_knowledge"
+        )
+
+        total_learned = cur.fetchone()[0]
+
         return {
             "messages": total_messages,
             "conversations": total_conversations,
-            "images": total_images
+            "images": total_images,
+            "learned_knowledge": total_learned
         }
+
+
+# =========================================================
+# AUTOMATIC DATABASE INITIALIZATION
+# =========================================================
+
+def _initialize_database_automatically():
+
+    try:
+        init_db()
+
+        print(
+            "[DATABASE] Database initialized successfully.",
+            flush=True
+        )
+
+    except Exception as exc:
+
+        print(
+            f"[DATABASE ERROR] Failed to initialize database: {exc}",
+            flush=True
+        )
+
+        # نعيد رفع الخطأ حتى لا يعمل التطبيق
+        # وهو غير قادر على الوصول لقاعدة البيانات.
+        raise
+
+
+# =========================================================
+# RUN AUTOMATIC INITIALIZATION
+# =========================================================
+
+_initialize_database_automatically()
